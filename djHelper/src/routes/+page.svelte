@@ -1,22 +1,21 @@
-
 <div class="page">
-    <div class="drag-and-drop-box">
+    <div class="playlist-converter-container">
         <Dropzone on:drop={handleFileSelect} />
-    </div>
-    <ol>
-        {#each files.accepted as item}
-          <li>{item.name}</li>
-        {/each}
-    </ol>
-    <div>
-        {#if files.accepted.length > 0}
-            <textarea rows="100" cols="80" id="playlistText" value={playlistResult}></textarea>
-        {/if}
+        <div>
+            {#if files.accepted.length > 0}
+                <p class="filename">{files.accepted[0].name}</p>
+                <textarea rows="100" cols="80" id="playlistText" value={playlistResult}></textarea>
+            {/if}
+        </div>  
     </div>
 </div>
 
 <style lang="scss">
-  /* drag and drop box is a 500px square with a 5px border black border, it becomes a 10px blue border when hovered over */
+    .playlist-converter-container {
+        width: 70%;
+        margin: 10px;
+    }
+
     .drag-and-drop-box {
         border: 5px solid black;
         border-radius: 10px;
@@ -33,10 +32,19 @@
         padding: 10px;
         background: rgb(22, 22, 22);
     }
-
-    .dropzone{
-        width: 500px;
+    :global(.dropzone) {
         background: black !important;
+    }
+    textarea {
+        background: black;
+        color: white;
+        border: 2px solid black;
+        border-radius: 10px;
+        width: 100%;
+    }
+
+    .filename {
+        color: white;
     }
 
     // box sizing is border-box so that the padding is included in the width and height
