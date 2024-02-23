@@ -1,24 +1,22 @@
-<div class="page">
-    <PlaylistConverter />
-</div>
+<script lang="ts">
+  import PlaylistConverter from "../components/playlist-converter.svelte";
+</script>
+
+<PlaylistConverter />
 
 <style lang="scss">
-    :global(body) {
-        width: 100%;
-        height: 100%;
-        padding: 10px;
-        background: rgb(22, 22, 22);
-    }
-    :global(.dropzone) {
-        background: black !important;
-    }
+  :global(body) {
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    background: rgb(22, 22, 22);
+  }
+  :global(.dropzone) {
+    background: black !important;
+  }
 
-    // box sizing is border-box so that the padding is included in the width and height
-    ::global(*) {
-        box-sizing: border-box;
-    }
+  // box sizing is border-box so that the padding is included in the width and height
+  :global(*) {
+    box-sizing: border-box;
+  }
 </style>
-
-<script lang="ts">
-    import PlaylistConverter from "../components/playlist-converter.svelte";
-</script>
