@@ -54,6 +54,16 @@
     const titles = [...cueFileText.matchAll(title_re)];
     const indices = [...cueFileText.matchAll(index_re)];
 
+    // Time indices is in time format that looks like 00:00:00,
+    // if the set is longer than 1 hour, it will be 00:00:00,
+    // if the set is shorter than 1 hour, it will be 00:00,
+    // so if the last song was started at hour 00 we can remove the hour part
+    if (indices[indices.length - 1][1].split(":")[0] === "00"){
+        indices.forEach((index) => {
+            index[1] = index[1].substring(3);
+        });
+    }
+
     const setTracks: DJSetTrack[] = [];
     const startTimes: string[] = [];
 
