@@ -58,10 +58,10 @@
     // if the set is longer than 1 hour, it will be 00:00:00,
     // if the set is shorter than 1 hour, it will be 00:00,
     // so if the last song was started at hour 00 we can remove the hour part
-    if (indices[indices.length - 1][1].split(":")[0] === "00"){
-        indices.forEach((index) => {
-            index[1] = index[1].substring(3);
-        });
+    if (indices[indices.length - 1][1].split(":")[0] === "00") {
+      indices.forEach((index) => {
+        index[1] = index[1].substring(3);
+      });
     }
 
     const setTracks: DJSetTrack[] = [];
@@ -82,10 +82,14 @@
       ) {
         setTracks.push({ title, artist });
         startTimes.push(time);
-        playlistText += `${i + 1}: ${artist} - ${title} - ${time}\n`;
       }
     }
+
+    setTracks.forEach((track, index) => {
+      playlistText += `${index + 1}: ${track.artist} - ${track.title} - ${startTimes[index]}\n`;
+    });
     totalNumberOfTracks = setTracks.length;
+    
     return playlistText;
   }
 </script>
@@ -96,7 +100,7 @@
     <div class="action-row">
       <p class="filename">{files.accepted[0].name}</p>
       <button class="cta-button" on:click={copyToClipboard}
-        >Copy to clipboard</button
+        >Copy to clipboadsfgr\erdgs\gwerETATHRArd</button
       >
     </div>
     <textarea
