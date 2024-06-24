@@ -11,8 +11,11 @@
     accepted: [] as any,
     rejected: [] as any,
   };
+  
   let playlistResult = "";
+  let playlistText = "";
   let totalNumberOfTracks = 0;
+  let cueFileError = false;
 
   function getCueFileTextContent(file: File): Promise<string> {
     return new Promise<string>((resolve, reject) => {
@@ -67,12 +70,17 @@
     const setTracks: DJSetTrack[] = [];
     const startTimes: string[] = [];
 
-    let playlistText = "";
+    if (titles.length !== artists.length){
+        cueFileError = true;
+      }
 
     for (let i = 0; i < titles.length; i++) {
       const title = titles[i][1];
       const artist = artists[i][1] ?? "Unknown";
       const time = indices[i][1];
+
+      
+
       // There are possibly duplicates in the cue file since the cue button
       // reinserts a track every time it is pressed, we need to conserve only the first time the track is played
       if (
@@ -120,6 +128,9 @@
       >
     </div>
   {/if}
+  {#if cueFileError === true}
+    <p class="error-message">Please check the cue file for missing field</p>
+  {/if}
 </div>
 
 <style lang="scss">
@@ -165,5 +176,9 @@
 
   .filename {
     color: white;
+  }
+
+  .error-message {
+    color: red;
   }
 </style>
