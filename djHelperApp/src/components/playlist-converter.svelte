@@ -11,7 +11,7 @@
     accepted: [] as any,
     rejected: [] as any,
   };
-  
+
   let playlistResult = "";
   let playlistText = "";
   let totalNumberOfTracks = 0;
@@ -108,7 +108,7 @@
     <div class="action-row">
       <p class="filename">{files.accepted[0].name}</p>
       <button class="cta-button" on:click={copyToClipboard}
-        >Copy to clipboadsfgr\erdgs\gwerETATHRArd</button
+        >Copy to clipboard</button
       >
     </div>
     <textarea
@@ -128,6 +128,7 @@
       >
     </div>
   {/if}
+  
   {#if cueFileError === true}
     <p class="error-message">Please check the cue file for missing field</p>
   {/if}
