@@ -1,8 +1,5 @@
 <script lang="ts">
-  interface DJSetTrack {
-    title: string;
-    artist: string;
-  }
+  import type { DJSetTrackList } from "src/interfaces/module/DjSetTrackList.interface";
   // This is the script for the drag and drop box
   // It will be used to handle the drag and drop events
   import Dropzone from "svelte-file-dropzone";
@@ -13,9 +10,11 @@
   };
 
   let playlistResult = "";
-  let playlistText = "";
+  // let playlistText = "";
   let totalNumberOfTracks = 0;
   let cueFileError = false;
+
+  export let playlist: DJSetTrackList = null;
 
   function getCueFileTextContent(file: File): Promise<string> {
     return new Promise<string>((resolve, reject) => {
@@ -36,7 +35,7 @@
     files.accepted = [...files.accepted, ...acceptedFiles];
     files.rejected = [...files.rejected, ...fileRejections];
     getCueFileTextContent(files.accepted[0]).then((text) => {
-      playlistResult = convertCueToPlaylistText(text);
+      handleConvertCueFile(text);
     });
   }
 
@@ -48,7 +47,10 @@
     document.execCommand("copy");
   }
 
-  function convertCueToPlaylistText(cueFileText: string): string {
+  function handleConvertCueFile(cueFileText: string): void {
+    // reinitialize the playlist
+    playlist = { tracks: [] };
+    
     const artist_re = /[\t\t| +]PERFORMER "(.*)"/g;
     const title_re = /[\t\t| +]TITLE "(.*)"/g;
     const index_re = /[\t\t| +]INDEX \d\d (.*)/g;
@@ -67,8 +69,7 @@
       });
     }
 
-    const setTracks: DJSetTrack[] = [];
-    const startTimes: string[] = [];
+    const setTracks: {title:string, artist: string} [] = [];
 
     if (titles.length !== artists.length){
         cueFileError = true;
@@ -79,8 +80,6 @@
       const artist = artists[i][1] ?? "Unknown";
       const time = indices[i][1];
 
-      
-
       // There are possibly duplicates in the cue file since the cue button
       // reinserts a track every time it is pressed, we need to conserve only the first time the track is played
       if (
@@ -88,17 +87,9 @@
           (track) => track.title === title && track.artist === artist,
         ) === undefined
       ) {
-        setTracks.push({ title, artist });
-        startTimes.push(time);
+        playlist?.tracks.push({ title, artist, playTime: time });
       }
     }
-
-    setTracks.forEach((track, index) => {
-      playlistText += `${index + 1}: ${track.artist} - ${track.title} - ${startTimes[index]}\n`;
-    });
-    totalNumberOfTracks = setTracks.length;
-    
-    return playlistText;
   }
 </script>
 
@@ -111,12 +102,7 @@
         >Copy to clipboard</button
       >
     </div>
-    <textarea
-      rows={totalNumberOfTracks + 1}
-      cols="80"
-      id="playlistText"
-      value={playlistResult}
-    ></textarea>
+   
     <div class="action-row">
       <button
         class="cta-button"
@@ -136,7 +122,9 @@
 
 <style lang="scss">
   .playlist-converter-container {
-    width: 70%;
+    width: 80%;
+    display: flex;
+    align-items: center;
   }
   .action-row {
     display: flex;
