@@ -1,29 +1,36 @@
 <script lang="ts">
-    import { Card } from "@sveltestrap/sveltestrap";
-    import type { DJSetTrackList } from "../interfaces/module/DjSetTrackList.interface";
-    export let playlist: DJSetTrackList = null;
+  import { Card } from "@sveltestrap/sveltestrap";
+  import type { DJSetTrackList } from "../interfaces/module/DjSetTrackList.interface";
+    import { getContext } from "svelte";
+    import type { AppStore } from "../store/playlist-store";
+  let playlist: DJSetTrackList | null;
+  let formattedText = "";
+  let appStore: AppStore;
+  appStore = getContext("appStore");
 
-    function convertTrackListToText(): string {
-    let formattedText = "";
-    if(playlist){
-    playlist.tracks.forEach((track, index) => {
-      formattedText += `${index + 1}: ${track.artist} - ${track.title} - ${track.playTime}\n`;
-    });
+  appStore.playlistStoreData.subscribe((value) => {
+    playlist = value;
+    convertTrackListToText();
+    console.log(formattedText,'from Subscribe');
     
-    return formattedText;
+  });
+
+  function convertTrackListToText(): void {
+    if (playlist && playlist?.tracks.length !== 0) {
+      playlist.tracks.forEach((track, index) => {
+        formattedText += `${index + 1}: ${track.artist} - ${track.title} - ${track.playTime}\n`;
+      });
+    }
   }
-  return "";
-}
 </script>
 
 <Card>
-    {#if playlist}
+  {#if playlist}
     <textarea
-    rows={playlist.tracks.length + 1}
-    cols="80"
-    id="playlistText"
-    value={convertTrackListToText()}
-  ></textarea>
+      rows={playlist.tracks.length + 1}
+      cols="80"
+      id="playlistText"
+      bind:value={formattedText}
+    ></textarea>
   {/if}
-
 </Card>

@@ -1,20 +1,23 @@
 <script lang="ts">
-  import type { DJSetTrackList } from "src/interfaces/module/DjSetTrackList.interface";
+  // import type { DJSetTrackList } from "src/interfaces/module/DjSetTrackList.interface";
   // This is the script for the drag and drop box
   // It will be used to handle the drag and drop events
   import Dropzone from "svelte-file-dropzone";
+  import type { DJSetTrackList } from "../interfaces/module/DjSetTrackList.interface";
+  import { AppStore } from "../store/playlist-store";
+  import { getContext, onMount } from "svelte";
 
   let files = {
     accepted: [] as any,
     rejected: [] as any,
   };
 
-  let playlistResult = "";
-  // let playlistText = "";
   let totalNumberOfTracks = 0;
   let cueFileError = false;
 
-  export let playlist: DJSetTrackList = null;
+  let appStore: AppStore;
+  appStore = getContext("appStore");
+
 
   function getCueFileTextContent(file: File): Promise<string> {
     return new Promise<string>((resolve, reject) => {
@@ -49,8 +52,8 @@
 
   function handleConvertCueFile(cueFileText: string): void {
     // reinitialize the playlist
-    playlist = { tracks: [] };
-    
+    let newPlaylist: DJSetTrackList = { tracks: [] };
+
     const artist_re = /[\t\t| +]PERFORMER "(.*)"/g;
     const title_re = /[\t\t| +]TITLE "(.*)"/g;
     const index_re = /[\t\t| +]INDEX \d\d (.*)/g;
@@ -69,11 +72,11 @@
       });
     }
 
-    const setTracks: {title:string, artist: string} [] = [];
+    const setTracks: { title: string; artist: string }[] = [];
 
-    if (titles.length !== artists.length){
-        cueFileError = true;
-      }
+    if (titles.length !== artists.length) {
+      cueFileError = true;
+    }
 
     for (let i = 0; i < titles.length; i++) {
       const title = titles[i][1];
@@ -87,9 +90,11 @@
           (track) => track.title === title && track.artist === artist,
         ) === undefined
       ) {
-        playlist?.tracks.push({ title, artist, playTime: time });
+        newPlaylist.tracks.push({ title, artist, playTime: time });
       }
     }
+    appStore.setPlaylist(newPlaylist);
+    // dispatch event to other components
   }
 </script>
 
@@ -102,19 +107,18 @@
         >Copy to clipboard</button
       >
     </div>
-   
+
     <div class="action-row">
       <button
         class="cta-button"
         style="align-items: end;"
         on:click={() => {
           files.accepted = [];
-          playlistResult = "";
         }}>Clear</button
       >
     </div>
   {/if}
-  
+
   {#if cueFileError === true}
     <p class="error-message">Please check the cue file for missing field</p>
   {/if}
