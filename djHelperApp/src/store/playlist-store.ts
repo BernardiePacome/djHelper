@@ -26,7 +26,7 @@ export class AppStore {
     });
 
     $: this.playlistStoreData.subscribe((data) => {
-      console.log(data, "playlist Data has changed");
+      // console.log(data, "playlist Data has changed");
     });
   }
   setPlaylist(payload: DJSetTrackList) {

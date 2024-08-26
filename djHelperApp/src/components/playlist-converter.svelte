@@ -12,12 +12,10 @@
     rejected: [] as any,
   };
 
-  let totalNumberOfTracks = 0;
   let cueFileError = false;
 
   let appStore: AppStore;
   appStore = getContext("appStore");
-
 
   function getCueFileTextContent(file: File): Promise<string> {
     return new Promise<string>((resolve, reject) => {
@@ -40,14 +38,6 @@
     getCueFileTextContent(files.accepted[0]).then((text) => {
       handleConvertCueFile(text);
     });
-  }
-
-  function copyToClipboard() {
-    const playlistText = document.getElementById(
-      "playlistText",
-    ) as HTMLTextAreaElement;
-    playlistText.select();
-    document.execCommand("copy");
   }
 
   function handleConvertCueFile(cueFileText: string): void {
@@ -94,59 +84,26 @@
       }
     }
     appStore.setPlaylist(newPlaylist);
-    // dispatch event to other components
   }
+    // dispatch event to other components
 </script>
 
 <div class="playlist-converter-container">
   <Dropzone on:drop={handleFileSelect} />
-  {#if files.accepted.length > 0}
-    <div class="action-row">
-      <p class="filename">{files.accepted[0].name}</p>
-      <button class="cta-button" on:click={copyToClipboard}
-        >Copy to clipboard</button
-      >
-    </div>
-
-    <div class="action-row">
-      <button
-        class="cta-button"
-        style="align-items: end;"
-        on:click={() => {
-          files.accepted = [];
-        }}>Clear</button
-      >
-    </div>
-  {/if}
-
-  {#if cueFileError === true}
-    <p class="error-message">Please check the cue file for missing field</p>
-  {/if}
 </div>
+
+{#if files.accepted.length > 0}
+  <p class="filename">{files.accepted[0].name}</p>
+{/if}
+
+{#if cueFileError === true}
+  <p class="error-message">Please check the cue file for missing field</p>
+{/if}
 
 <style lang="scss">
   .playlist-converter-container {
     width: 80%;
-    display: flex;
-    align-items: center;
-  }
-  .action-row {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .cta-button {
-    background-color: black;
-    color: white;
-    border: 2px solid white;
-    padding: 10px;
-    margin-left: 10px;
-    &:hover {
-      background-color: rgb(29, 29, 29);
-      color: grey;
-      border: 2px solid grey;
-    }
+    margin: 0 auto;
   }
   /* The page is a 100% width and height container with a 10px padding dark grey */
   :global(body) {

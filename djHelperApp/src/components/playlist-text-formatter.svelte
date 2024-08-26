@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { Card } from "@sveltestrap/sveltestrap";
+  import { Button, Card } from "@sveltestrap/sveltestrap";
   import type { DJSetTrackList } from "../interfaces/module/DjSetTrackList.interface";
-    import { getContext } from "svelte";
-    import type { AppStore } from "../store/playlist-store";
+  import { getContext } from "svelte";
+  import type { AppStore } from "../store/playlist-store";
   let playlist: DJSetTrackList | null;
   let formattedText = "";
   let appStore: AppStore;
@@ -11,8 +11,6 @@
   appStore.playlistStoreData.subscribe((value) => {
     playlist = value;
     convertTrackListToText();
-    console.log(formattedText,'from Subscribe');
-    
   });
 
   function convertTrackListToText(): void {
@@ -22,15 +20,27 @@
       });
     }
   }
+
+  function copyToClipboard() {
+    const playlistText = document.getElementById(
+      "playlistText",
+    ) as HTMLTextAreaElement;
+    playlistText.select();
+    document.execCommand("copy");
+  }
 </script>
 
 <Card>
-  {#if playlist}
+  {#if playlist && playlist.tracks.length > 0}
     <textarea
       rows={playlist.tracks.length + 1}
       cols="80"
       id="playlistText"
       bind:value={formattedText}
     ></textarea>
+    <span>
+      <Button on:click={copyToClipboard}>Copy to Clipboard</Button>
+      <Button on:click={() => appStore.clearPlaylist()}>Clear Playlist</Button>
+    </span>
   {/if}
 </Card>

@@ -13,7 +13,6 @@
   } from "@sveltestrap/sveltestrap";
     import { AppStore } from "../store/playlist-store";
 
-let appStore : AppStore;
 setContext("appStore", new AppStore());
 
 </script>
