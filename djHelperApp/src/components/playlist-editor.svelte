@@ -1,7 +1,7 @@
-<script lang="ts">
+<!-- <script lang="ts">
 
-</script>
+</script> -->
 
-<div class="col">hello</div>
+<div class="col">COMING SOON</div>
 
 

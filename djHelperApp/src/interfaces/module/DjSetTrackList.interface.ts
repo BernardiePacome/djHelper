@@ -2,7 +2,7 @@ interface TrackList {
   tracks: SetTrack[];
 }
 
-interface SetTrack {
+export interface SetTrack {
   title: string;
   artist: string;
   playTime: string;

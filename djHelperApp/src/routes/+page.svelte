@@ -30,7 +30,7 @@ setContext("appStore", new AppStore());
     <PlaylistConverter></PlaylistConverter>
     <Accordion stayOpen>
       <AccordionItem header="Playlist Editor">
-        <!-- <PlaylistEditor bind:playlist={$playlistStore}/> -->
+        <PlaylistEditor />
       </AccordionItem>
       <AccordionItem header="Playlist Text">
         <PlaylistTextFormatter />
@@ -38,3 +38,17 @@ setContext("appStore", new AppStore());
     </Accordion>
   </Theme>
 </html>
+
+<style lang="scss">
+  html {
+    height: 100%;
+    padding: 0 10% 0 10%;
+  }
+  body {
+    height: 100%;
+    
+  }
+  #svelte {
+    height: 100%;
+  }
+</style>

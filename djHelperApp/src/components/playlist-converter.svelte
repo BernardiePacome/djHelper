@@ -3,9 +3,10 @@
   // This is the script for the drag and drop box
   // It will be used to handle the drag and drop events
   import Dropzone from "svelte-file-dropzone";
-  import type { DJSetTrackList } from "../interfaces/module/DjSetTrackList.interface";
+  import type { DJSetTrackList, SetTrack } from "../interfaces/module/DjSetTrackList.interface";
   import { AppStore } from "../store/playlist-store";
   import { getContext, onMount } from "svelte";
+  import _ from "lodash/fp";
 
   let files = {
     accepted: [] as any,
@@ -40,6 +41,15 @@
     });
   }
 
+  /**
+   * This function will compare two tracks and return true if they are the same
+   * a track is the same if both their title and artist are the same
+  */
+  function trackComparatorFunction(track1: SetTrack, track2: SetTrack) : boolean {
+    return track1.title === track2.title && track1.artist === track2.artist;
+  }
+    
+
   function handleConvertCueFile(cueFileText: string): void {
     // reinitialize the playlist
     let newPlaylist: DJSetTrackList = { tracks: [] };
@@ -62,8 +72,6 @@
       });
     }
 
-    const setTracks: { title: string; artist: string }[] = [];
-
     if (titles.length !== artists.length) {
       cueFileError = true;
     }
@@ -71,18 +79,11 @@
     for (let i = 0; i < titles.length; i++) {
       const title = titles[i][1];
       const artist = artists[i][1] ?? "Unknown";
-      const time = indices[i][1];
+      const playTime = indices[i][1];
 
-      // There are possibly duplicates in the cue file since the cue button
-      // reinserts a track every time it is pressed, we need to conserve only the first time the track is played
-      if (
-        setTracks.find(
-          (track) => track.title === title && track.artist === artist,
-        ) === undefined
-      ) {
-        newPlaylist.tracks.push({ title, artist, playTime: time });
-      }
+      newPlaylist.tracks.push({ title, artist, playTime });
     }
+    newPlaylist.tracks = _.uniqWith(trackComparatorFunction, newPlaylist.tracks);
     appStore.setPlaylist(newPlaylist);
   }
     // dispatch event to other components
@@ -101,17 +102,9 @@
 {/if}
 
 <style lang="scss">
-  .playlist-converter-container {
-    width: 80%;
-    margin: 0 auto;
-  }
+
   /* The page is a 100% width and height container with a 10px padding dark grey */
-  :global(body) {
-    width: 100%;
-    height: 100%;
-    padding: 10px;
-    background: rgb(22, 22, 22);
-  }
+  
   :global(.dropzone) {
     background: black !important;
   }
@@ -125,7 +118,10 @@
   }
 
   .filename {
+    display: flex;
+    justify-content: center;
     color: white;
+    margin-top: 12px;
   }
 
   .error-message {
