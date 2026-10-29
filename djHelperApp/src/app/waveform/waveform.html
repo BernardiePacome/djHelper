@@ -1,0 +1,26 @@
+<section class="waveform-panel" aria-label="Audio waveform">
+  <div class="waveform-header">
+    <h2>Waveform</h2>
+    <span class="audio-name">{{ file().name }}</span>
+  </div>
+
+  @if (isLoading()) {
+    <p class="waveform-message" role="status">Analyzing audio…</p>
+  } @else if (errorMessage()) {
+    <p class="waveform-error" role="alert">{{ errorMessage() }}</p>
+  } @else {
+    <svg
+      class="waveform"
+      viewBox="0 0 1200 100"
+      preserveAspectRatio="none"
+      role="img"
+      [attr.aria-label]="'Audio waveform, duration ' + duration().toFixed(1) + ' seconds'"
+    >
+      <path [attr.d]="waveformPath()" />
+      @for (markerX of visibleTrackMarkers(); track $index) {
+        <line class="track-marker" [attr.x1]="markerX" y1="0" [attr.x2]="markerX" y2="100" />
+      }
+    </svg>
+    <p class="waveform-duration">{{ formattedDuration() }}</p>
+  }
+</section>

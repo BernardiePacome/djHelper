@@ -1,0 +1,28 @@
+<div
+  class="dropzone"
+  [class.dragging]="isDragging()"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave()"
+  (drop)="onDrop($event)"
+  (click)="fileInput.click()"
+  role="button"
+  tabindex="0"
+  aria-label="Choose or drop a cue, MP3, or WAV file"
+  (keydown.enter)="fileInput.click()"
+  (keydown.space)="fileInput.click()"
+>
+  <input #fileInput type="file" accept=".cue,.txt,.mp3,.wav,audio/mpeg,audio/wav,audio/x-wav" multiple (change)="onFileSelected($event)" />
+  <p class="dropzone-title">Drop a .cue, .mp3, or .wav file here</p>
+  <p class="dropzone-subtitle">Drop the cue and audio together, or add either one separately</p>
+</div>
+
+@if (fileName() || audioFileName()) {
+  <div class="file-meta">
+    <span>{{ fileName() }}{{ fileName() && audioFileName() ? ' · ' : '' }}{{ audioFileName() }}</span>
+    <button type="button" class="secondary-button" (click)="clearRequested.emit()">Clear</button>
+  </div>
+}
+
+@if (errorMessage()) {
+  <p class="error-message" role="alert">{{ errorMessage() }}</p>
+}
