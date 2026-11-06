@@ -8,6 +8,7 @@ import type { SetTrack } from '../set-track';
   styleUrl: './playlist-output.scss'
 })
 export class PlaylistOutput {
+
   readonly tracks = input.required<SetTrack[]>();
 
   readonly formattedText = computed(() =>
@@ -23,10 +24,12 @@ export class PlaylistOutput {
     }
 
     const textArea = document.createElement('textarea');
+
     textArea.value = playlistText;
     textArea.setAttribute('readonly', 'true');
     textArea.style.position = 'fixed';
     textArea.style.opacity = '0';
+    
     document.body.appendChild(textArea);
     textArea.select();
 
