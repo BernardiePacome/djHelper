@@ -17,28 +17,28 @@ export class Waveform {
   private readonly hoveredMarker = signal<PositionedCueMarker | null>(null);
   private readonly pinnedMarker = signal<PositionedCueMarker | null>(null);
 
-  readonly file = input.required<File>();
-  readonly trackMarkers = input<CueMarker[]>([]);
-  readonly audioSource = signal('');
-  readonly isLoading = signal(true);
-  readonly isPlaying = signal(false);
-  readonly errorMessage = signal('');
-  readonly playbackError = signal('');
-  readonly duration = signal(0);
-  readonly currentTime = signal(0);
-  readonly peaks = signal<number[]>([]);
-  readonly hasPreviousCue = computed(() =>
+  public readonly file = input.required<File>();
+  public readonly trackMarkers = input<CueMarker[]>([]);
+  public readonly audioSource = signal('');
+  public readonly isLoading = signal(true);
+  public readonly isPlaying = signal(false);
+  public readonly errorMessage = signal('');
+  public readonly playbackError = signal('');
+  public readonly duration = signal(0);
+  public readonly currentTime = signal(0);
+  public readonly peaks = signal<number[]>([]);
+  public readonly hasPreviousCue = computed(() =>
     this.visibleTrackMarkers().some((marker) => marker.time < this.currentTime())
   );
-  readonly hasNextCue = computed(() =>
+  public readonly hasNextCue = computed(() =>
     this.visibleTrackMarkers().some((marker) => marker.time > this.currentTime())
   );
-  readonly formattedCurrentTime = computed(() => this.formatTime(this.currentTime()));
-  readonly formattedDuration = computed(() => {
+  public readonly formattedCurrentTime = computed(() => this.formatTime(this.currentTime()));
+  public readonly formattedDuration = computed(() => {
     return this.formatTime(this.duration());
   });
 
-  readonly waveformPath = computed(() => {
+  public readonly waveformPath = computed(() => {
     const peaks = this.peaks();
     if (peaks.length === 0) {
       return '';
@@ -55,14 +55,14 @@ export class Waveform {
       })
       .join('');
   });
-  readonly visibleTrackMarkers = computed(() =>
+  public readonly visibleTrackMarkers = computed(() =>
     this.duration() > 0
       ? this.trackMarkers()
           .map((marker, index) => ({ ...marker, index, x: (marker.time / this.duration()) * 1200 }))
           .filter((marker) => Number.isFinite(marker.time) && marker.time >= 0 && marker.time <= this.duration())
       : []
   );
-  readonly activeTooltipMarkers = computed(() => {
+  public readonly activeTooltipMarkers = computed(() => {
     const activeMarker = this.hoveredMarker() ?? this.pinnedMarker();
     if (!activeMarker) {
       return [];
@@ -89,7 +89,7 @@ export class Waveform {
 
   private loadId = 0;
 
-  constructor() {
+  public constructor() {
     effect((onCleanup) => {
       const source = URL.createObjectURL(this.file());
       this.audioSource.set(source);

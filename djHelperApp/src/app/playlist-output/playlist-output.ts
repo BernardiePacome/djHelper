@@ -9,9 +9,9 @@ import type { SetTrack } from '../set-track';
 })
 export class PlaylistOutput {
 
-  readonly tracks = input.required<SetTrack[]>();
+  public readonly tracks = input.required<SetTrack[]>();
 
-  readonly formattedText = computed(() =>
+  public readonly formattedText = computed(() =>
     this.tracks()
       .map((track, index) => `${index + 1}: ${track.artist} - ${track.title} - ${track.playTime}`)
       .join('\n')

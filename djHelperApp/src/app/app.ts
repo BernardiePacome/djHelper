@@ -12,11 +12,11 @@ import type { CueMarker, SetTrack } from './set-track';
   styleUrl: './app.scss'
 })
 export class App {
-  readonly fileName = signal('');
-  readonly errorMessage = signal('');
-  readonly playlist = signal<SetTrack[]>([]);
-  readonly audioFile = signal<File | null>(null);
-  readonly trackMarkers = signal<CueMarker[]>([]);
+  public readonly fileName = signal('');
+  public readonly errorMessage = signal('');
+  public readonly playlist = signal<SetTrack[]>([]);
+  public readonly audioFile = signal<File | null>(null);
+  public readonly trackMarkers = signal<CueMarker[]>([]);
 
   public onFilesSelected(files: File[]): void {
     const cueFile = files.find((file) => /\.(cue|txt)$/i.test(file.name));

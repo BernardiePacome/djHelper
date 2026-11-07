@@ -7,12 +7,12 @@ import { Component, input, output, signal } from '@angular/core';
   styleUrl: './cue-file-dropzone.scss'
 })
 export class CueFileDropzone {
-  readonly fileName = input('');
-  readonly audioFileName = input('');
-  readonly errorMessage = input('');
-  readonly filesSelected = output<File[]>();
-  readonly clearRequested = output<void>();
-  readonly isDragging = signal(false);
+  public readonly fileName = input('');
+  public readonly audioFileName = input('');
+  public readonly errorMessage = input('');
+  public readonly filesSelected = output<File[]>();
+  public readonly clearRequested = output<void>();
+  public readonly isDragging = signal(false);
 
   public onFileSelected(event: Event): void {
     const inputElement = event.target as HTMLInputElement;
