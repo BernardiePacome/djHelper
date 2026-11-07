@@ -1,5 +1,6 @@
 import { Component, computed, effect, input, signal } from '@angular/core';
 import type { CueMarker } from '../set-track';
+import { PlaybackIcon } from './playback-icon';
 
 interface PositionedCueMarker extends CueMarker {
   index: number;
@@ -9,6 +10,7 @@ interface PositionedCueMarker extends CueMarker {
 @Component({
   selector: 'app-waveform',
   standalone: true,
+  imports: [PlaybackIcon],
   templateUrl: './waveform.html',
   styleUrl: './waveform.scss'
 })

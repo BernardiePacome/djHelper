@@ -22,24 +22,29 @@
     <div class="player-controls">
       <button
         type="button"
-        class="playback-button"
+        class="playback-button playback-toggle"
         aria-label="Previous cue point"
         [disabled]="!hasPreviousCue()"
         (click)="skipToCue(audioPlayer, 'previous')"
       >
-        Previous
-      </button>
-      <button type="button" class="playback-button" (click)="togglePlayback(audioPlayer)">
-        {{ isPlaying() ? 'Pause' : 'Play' }}
+        <app-playback-icon [name]="'previous'" />
       </button>
       <button
         type="button"
-        class="playback-button"
+        class="playback-button playback-toggle"
+        [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'"
+        (click)="togglePlayback(audioPlayer)"
+      >
+        <app-playback-icon [name]="isPlaying() ? 'pause' : 'play'" />
+      </button>
+      <button
+        type="button"
+        class="playback-button playback-toggle"
         aria-label="Next cue point"
         [disabled]="!hasNextCue()"
         (click)="skipToCue(audioPlayer, 'next')"
       >
-        Next
+        <app-playback-icon [name]="'next'" />
       </button>
       <span class="playback-time" aria-live="off">{{ formattedCurrentTime() }} / {{ formattedDuration() }}</span>
     </div>
