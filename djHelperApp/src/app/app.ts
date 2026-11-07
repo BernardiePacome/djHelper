@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { CueFileDropzone } from './cue-file-dropzone/cue-file-dropzone';
 import { PlaylistOutput } from './playlist-output/playlist-output';
 import { Waveform } from './waveform/waveform';
-import type { SetTrack } from './set-track';
+import type { CueMarker, SetTrack } from './set-track';
 
 @Component({
   selector: 'app-root',
@@ -16,7 +16,7 @@ export class App {
   readonly errorMessage = signal('');
   readonly playlist = signal<SetTrack[]>([]);
   readonly audioFile = signal<File | null>(null);
-  readonly trackMarkers = signal<number[]>([]);
+  readonly trackMarkers = signal<CueMarker[]>([]);
 
   public onFilesSelected(files: File[]): void {
     const cueFile = files.find((file) => /\.(cue|txt)$/i.test(file.name));
@@ -129,7 +129,13 @@ export class App {
       return;
     }
 
-    this.trackMarkers.set(tracks.map((track) => this.cueTimeToSeconds(track.playTime)));
+    this.trackMarkers.set(
+      tracks.map((track) => ({
+        time: this.cueTimeToSeconds(track.playTime),
+        title: track.title,
+        artist: track.artist
+      }))
+    );
 
     const lastTrackTime = tracks[tracks.length - 1].playTime;
     const removeLeadingZeroMinutes = lastTrackTime.split(':')[0] === '00';

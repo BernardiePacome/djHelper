@@ -9,18 +9,89 @@
   } @else if (errorMessage()) {
     <p class="waveform-error" role="alert">{{ errorMessage() }}</p>
   } @else {
-    <svg
-      class="waveform"
-      viewBox="0 0 1200 100"
-      preserveAspectRatio="none"
-      role="img"
-      [attr.aria-label]="'Audio waveform, duration ' + duration().toFixed(1) + ' seconds'"
-    >
-      <path [attr.d]="waveformPath()" />
-      @for (markerX of visibleTrackMarkers(); track $index) {
-        <line class="track-marker" [attr.x1]="markerX" y1="0" [attr.x2]="markerX" y2="100" />
+    <audio
+      #audioPlayer
+      [src]="audioSource()"
+      (play)="isPlaying.set(true)"
+      (pause)="isPlaying.set(false)"
+      (timeupdate)="onAudioTimeUpdate(audioPlayer)"
+      (ended)="onAudioEnded()"
+      (error)="playbackError.set('Unable to play this audio file.')"
+      hidden
+    ></audio>
+    <div class="player-controls">
+      <button
+        type="button"
+        class="playback-button"
+        aria-label="Previous cue point"
+        [disabled]="!hasPreviousCue()"
+        (click)="skipToCue(audioPlayer, 'previous')"
+      >
+        Previous
+      </button>
+      <button type="button" class="playback-button" (click)="togglePlayback(audioPlayer)">
+        {{ isPlaying() ? 'Pause' : 'Play' }}
+      </button>
+      <button
+        type="button"
+        class="playback-button"
+        aria-label="Next cue point"
+        [disabled]="!hasNextCue()"
+        (click)="skipToCue(audioPlayer, 'next')"
+      >
+        Next
+      </button>
+      <span class="playback-time" aria-live="off">{{ formattedCurrentTime() }} / {{ formattedDuration() }}</span>
+    </div>
+    @if (playbackError()) {
+      <p class="waveform-error" role="alert">{{ playbackError() }}</p>
+    }
+    <div class="waveform-container">
+      <svg
+        class="waveform"
+        viewBox="0 0 1200 100"
+        preserveAspectRatio="none"
+        role="group"
+        [attr.aria-label]="'Audio waveform, duration ' + duration().toFixed(1) + ' seconds'"
+        (click)="seekAudio($event, audioPlayer)"
+      >
+        <path [attr.d]="waveformPath()" />
+        <line
+          class="playback-cursor"
+          [attr.x1]="(currentTime() / duration()) * 1200"
+          y1="0"
+          [attr.x2]="(currentTime() / duration()) * 1200"
+          y2="100"
+        />
+        @for (marker of visibleTrackMarkers(); track marker.index) {
+          <g
+            class="track-marker"
+            role="button"
+            tabindex="0"
+            [attr.aria-label]="marker.artist + ' - ' + marker.title"
+            (mouseenter)="showMarkerTooltip(marker)"
+            (mouseleave)="hideMarkerTooltip()"
+            (focus)="showMarkerTooltip(marker)"
+            (blur)="hideMarkerTooltip()"
+            (click)="$event.stopPropagation(); togglePinnedMarker(marker)"
+            (keydown)="onMarkerKeydown($event, marker)"
+          >
+            <line class="track-marker-hitbox" [attr.x1]="marker.x" y1="0" [attr.x2]="marker.x" y2="100" />
+            <line class="track-marker-line" [attr.x1]="marker.x" y1="0" [attr.x2]="marker.x" y2="100" />
+          </g>
+        }
+      </svg>
+      @for (tooltip of activeTooltipMarkers(); track tooltip.position) {
+        <div
+          class="track-tooltip"
+          [class.track-tooltip-bottom]="tooltip.position === 'bottom'"
+          role="tooltip"
+          [style.left.%]="(tooltip.marker.x / 1200) * 100"
+        >
+          {{ tooltip.marker.artist }} - {{ tooltip.marker.title }}
+        </div>
       }
-    </svg>
+    </div>
     <p class="waveform-duration">{{ formattedDuration() }}</p>
   }
 </section>

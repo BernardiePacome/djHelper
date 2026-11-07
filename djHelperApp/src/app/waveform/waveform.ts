@@ -1,4 +1,10 @@
 import { Component, computed, effect, input, signal } from '@angular/core';
+import type { CueMarker } from '../set-track';
+
+interface PositionedCueMarker extends CueMarker {
+  index: number;
+  x: number;
+}
 
 @Component({
   selector: 'app-waveform',
@@ -7,19 +13,29 @@ import { Component, computed, effect, input, signal } from '@angular/core';
   styleUrl: './waveform.scss'
 })
 export class Waveform {
-  readonly file = input.required<File>();
-  readonly trackMarkers = input<number[]>([]);
-  readonly isLoading = signal(true);
-  readonly errorMessage = signal('');
-  readonly duration = signal(0);
-  readonly peaks = signal<number[]>([]);
-  readonly formattedDuration = computed(() => {
-    const totalSeconds = Math.floor(this.duration());
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
+  private readonly tooltipSeparationThreshold = 36;
+  private readonly hoveredMarker = signal<PositionedCueMarker | null>(null);
+  private readonly pinnedMarker = signal<PositionedCueMarker | null>(null);
 
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  readonly file = input.required<File>();
+  readonly trackMarkers = input<CueMarker[]>([]);
+  readonly audioSource = signal('');
+  readonly isLoading = signal(true);
+  readonly isPlaying = signal(false);
+  readonly errorMessage = signal('');
+  readonly playbackError = signal('');
+  readonly duration = signal(0);
+  readonly currentTime = signal(0);
+  readonly peaks = signal<number[]>([]);
+  readonly hasPreviousCue = computed(() =>
+    this.visibleTrackMarkers().some((marker) => marker.time < this.currentTime())
+  );
+  readonly hasNextCue = computed(() =>
+    this.visibleTrackMarkers().some((marker) => marker.time > this.currentTime())
+  );
+  readonly formattedCurrentTime = computed(() => this.formatTime(this.currentTime()));
+  readonly formattedDuration = computed(() => {
+    return this.formatTime(this.duration());
   });
 
   readonly waveformPath = computed(() => {
@@ -42,22 +58,129 @@ export class Waveform {
   readonly visibleTrackMarkers = computed(() =>
     this.duration() > 0
       ? this.trackMarkers()
-          .filter((time) => Number.isFinite(time) && time >= 0 && time <= this.duration())
-          .map((time) => (time / this.duration()) * 1200)
+          .map((marker, index) => ({ ...marker, index, x: (marker.time / this.duration()) * 1200 }))
+          .filter((marker) => Number.isFinite(marker.time) && marker.time >= 0 && marker.time <= this.duration())
       : []
   );
+  readonly activeTooltipMarkers = computed(() => {
+    const activeMarker = this.hoveredMarker() ?? this.pinnedMarker();
+    if (!activeMarker) {
+      return [];
+    }
+
+    const nearbyMarker = this.visibleTrackMarkers()
+      .filter((marker) => marker.index !== activeMarker.index)
+      .map((marker) => ({ marker, distance: Math.abs(marker.x - activeMarker.x) }))
+      .filter(({ distance }) => distance <= this.tooltipSeparationThreshold)
+      .sort((first, second) => first.distance - second.distance)[0]?.marker;
+
+    if (!nearbyMarker) {
+      return [{ marker: activeMarker, position: 'top' as const }];
+    }
+
+    const [firstMarker, nextMarker] =
+      activeMarker.index <= nearbyMarker.index ? [activeMarker, nearbyMarker] : [nearbyMarker, activeMarker];
+
+    return [
+      { marker: firstMarker, position: 'top' as const },
+      { marker: nextMarker, position: 'bottom' as const }
+    ];
+  });
 
   private loadId = 0;
 
   constructor() {
+    effect((onCleanup) => {
+      const source = URL.createObjectURL(this.file());
+      this.audioSource.set(source);
+      onCleanup(() => URL.revokeObjectURL(source));
+    });
+
     effect(() => {
       void this.loadWaveform(this.file());
     });
   }
 
+  public showMarkerTooltip(marker: PositionedCueMarker): void {
+    this.hoveredMarker.set(marker);
+  }
+
+  public hideMarkerTooltip(): void {
+    this.hoveredMarker.set(null);
+  }
+
+  public togglePinnedMarker(marker: PositionedCueMarker): void {
+    this.pinnedMarker.update((pinnedMarker) => (pinnedMarker?.index === marker.index ? null : marker));
+  }
+
+  public seekAudio(event: MouseEvent, audio: HTMLAudioElement): void {
+    const waveform = event.currentTarget as SVGSVGElement;
+    const bounds = waveform.getBoundingClientRect();
+    if (bounds.width === 0 || !Number.isFinite(audio.duration)) {
+      return;
+    }
+
+    const progress = Math.min(1, Math.max(0, (event.clientX - bounds.left) / bounds.width));
+    audio.currentTime = progress * audio.duration;
+    this.currentTime.set(audio.currentTime);
+    this.pinnedMarker.set(null);
+  }
+
+  public async togglePlayback(audio: HTMLAudioElement): Promise<void> {
+    this.playbackError.set('');
+    if (!audio.paused) {
+      audio.pause();
+      return;
+    }
+
+    try {
+      await audio.play();
+    } catch (error) {
+      this.playbackError.set(
+        error instanceof Error ? `Unable to play audio: ${error.message}` : 'Unable to play this audio file.'
+      );
+    }
+  }
+
+  public onAudioTimeUpdate(audio: HTMLAudioElement): void {
+    this.currentTime.set(audio.currentTime);
+  }
+
+  public skipToCue(audio: HTMLAudioElement, direction: 'previous' | 'next'): void {
+    if (!Number.isFinite(audio.duration)) {
+      return;
+    }
+
+    const currentTime = audio.currentTime;
+    const target = this.visibleTrackMarkers()
+      .map((marker) => marker.time)
+      .filter((time) => (direction === 'next' ? time > currentTime : time < currentTime))
+      .sort((first, second) => (direction === 'next' ? first - second : second - first))[0];
+
+    if (target !== undefined) {
+      audio.currentTime = target;
+      this.currentTime.set(target);
+      this.pinnedMarker.set(null);
+    }
+  }
+
+  public onAudioEnded(): void {
+    this.isPlaying.set(false);
+  }
+
+  public onMarkerKeydown(event: KeyboardEvent, marker: PositionedCueMarker): void {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      this.togglePinnedMarker(marker);
+    }
+  }
+
   private async loadWaveform(file: File): Promise<void> {
     const loadId = ++this.loadId;
     this.isLoading.set(true);
+    this.isPlaying.set(false);
+    this.currentTime.set(0);
+    this.playbackError.set('');
     this.errorMessage.set('');
     this.duration.set(0);
     this.peaks.set([]);
@@ -99,5 +222,14 @@ export class Waveform {
         this.isLoading.set(false);
       }
     }
+  }
+
+  private formatTime(time: number): string {
+    const totalSeconds = Math.floor(time);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 }
