@@ -18,8 +18,11 @@
     @if (audioFile(); as selectedAudio) {
       <app-waveform [file]="selectedAudio" [trackMarkers]="trackMarkers()" />
     }
+  </section>
 
+  <section>
     @if (playlist().length > 0) {
+      <app-track-list [tracks]="playlist()" />
       <app-playlist-output [tracks]="playlist()" />
     }
   </section>

@@ -1,18 +1,8 @@
 <section class="output-panel">
   <div class="output-header">
-    <h2>Playlist Text</h2>
+    <h2>Playlist</h2>
     <button type="button" class="primary-button" (click)="copyPlaylist()">Copy to Clipboard</button>
   </div>
 
   <textarea rows="18" readonly [value]="formattedText()"></textarea>
-
-  <div class="track-list">
-    @for (track of tracks(); track track.title + track.artist; let index = $index) {
-      <div class="track-row">
-        <span>{{ index + 1 }}.</span>
-        <span>{{ track.artist }} - {{ track.title }}</span>
-        <span class="track-time">{{ track.playTime }}</span>
-      </div>
-    }
-  </div>
 </section>

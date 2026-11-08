@@ -1,22 +1,57 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CueFileDropzone } from './cue-file-dropzone/cue-file-dropzone';
 import { PlaylistOutput } from './playlist-output/playlist-output';
+import { TrackList } from './track-list/track-list';
 import { Waveform } from './waveform/waveform';
 import type { CueMarker, SetTrack } from './set-track';
+
+interface MockFile {
+  name: string;
+  url: string;
+  type: string;
+}
+
+interface MockFileManifest {
+  files: MockFile[];
+}
+
+function isMockFileManifest(value: unknown): value is MockFileManifest {
+  if (typeof value !== 'object' || value === null || !('files' in value) || !Array.isArray(value.files)) {
+    return false;
+  }
+
+  return value.files.every(
+    (file) =>
+      typeof file === 'object' &&
+      file !== null &&
+      'name' in file &&
+      typeof file.name === 'string' &&
+      'url' in file &&
+      typeof file.url === 'string' &&
+      'type' in file &&
+      typeof file.type === 'string'
+  );
+}
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CueFileDropzone, PlaylistOutput, Waveform],
+  imports: [CueFileDropzone, PlaylistOutput, TrackList, Waveform],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App {
+export class App implements OnInit {
   public readonly fileName = signal('');
   public readonly errorMessage = signal('');
   public readonly playlist = signal<SetTrack[]>([]);
   public readonly audioFile = signal<File | null>(null);
   public readonly trackMarkers = signal<CueMarker[]>([]);
+
+  public ngOnInit(): void {
+    if (new URLSearchParams(location.search).get('mock') === '1') {
+      void this.loadMockFiles();
+    }
+  }
 
   public onFilesSelected(files: File[]): void {
     const cueFile = files.find((file) => /\.(cue|txt)$/i.test(file.name));
@@ -53,6 +88,36 @@ export class App {
     this.errorMessage.set('');
     this.audioFile.set(null);
     this.trackMarkers.set([]);
+  }
+
+  private async loadMockFiles(): Promise<void> {
+    try {
+      const manifestResponse = await fetch('/api/mock-files');
+      if (!manifestResponse.ok) {
+        throw new Error(`Mock manifest request failed (${manifestResponse.status})`);
+      }
+
+      const manifest: unknown = await manifestResponse.json();
+      if (!isMockFileManifest(manifest)) {
+        throw new Error('Mock manifest has an invalid format');
+      }
+
+      const files = await Promise.all(
+        manifest.files.map(async ({ name, url, type }) => {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Unable to load ${name} (${response.status})`);
+          }
+
+          return new File([await response.blob()], name, { type });
+        })
+      );
+
+      this.onFilesSelected(files);
+    } catch (error) {
+      const details = error instanceof Error ? error.message : 'Unknown error';
+      this.errorMessage.set(`Unable to load mock files: ${details}`);
+    }
   }
 
   private readFile(file: File): Promise<string> {

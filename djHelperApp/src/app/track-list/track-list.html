@@ -1,0 +1,9 @@
+<div class="track-list">
+  @for (track of tracks(); track track.title + track.artist; let index = $index) {
+    <div class="track-row">
+      <span>{{ index + 1 }}.</span>
+      <span>{{ track.artist }} - {{ track.title }}</span>
+      <span class="track-time">{{ track.playTime }}</span>
+    </div>
+  }
+</div>

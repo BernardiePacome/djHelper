@@ -22,6 +22,18 @@ npm start
 
 Then open `http://localhost:4200/`.
 
+## Mock server
+
+Start the app behind nginx with the cue and audio fixtures mounted from `mocks/`:
+
+```bash
+npm run mock:server
+```
+
+Open `http://localhost:8080/`. The mock build starts MSW in the browser, loads the fixture manifest through MSW, then fetches the `.cue` and `.mp3` files from nginx and processes them automatically. The normal Angular development server continues to use manual file uploads.
+
+Stop the server with `Ctrl+C`. Fixture files can be replaced in `mocks/` without rebuilding the image.
+
 ## Production build
 
 ```bash
