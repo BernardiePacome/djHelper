@@ -12,8 +12,8 @@
     <audio
       #audioPlayer
       [src]="audioSource()"
-      (play)="isPlaying.set(true)"
-      (pause)="isPlaying.set(false)"
+      (play)="onAudioPlay(audioPlayer)"
+      (pause)="onAudioPause()"
       (timeupdate)="onAudioTimeUpdate(audioPlayer)"
       (ended)="onAudioEnded()"
       (error)="playbackError.set('Unable to play this audio file.')"
@@ -63,9 +63,9 @@
         <path [attr.d]="waveformPath()" />
         <line
           class="playback-cursor"
-          [attr.x1]="(currentTime() / duration()) * 1200"
+          [attr.x1]="playbackPosition()"
           y1="0"
-          [attr.x2]="(currentTime() / duration()) * 1200"
+          [attr.x2]="playbackPosition()"
           y2="100"
         />
         @for (marker of visibleTrackMarkers(); track marker.index) {

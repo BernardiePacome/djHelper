@@ -29,6 +29,9 @@ export class Waveform {
   public readonly duration = signal(0);
   public readonly currentTime = signal(0);
   public readonly peaks = signal<number[]>([]);
+  public readonly playbackPosition = computed(() =>
+    this.duration() > 0 ? (this.currentTime() / this.duration()) * 1200 : 0
+  );
   public readonly hasPreviousCue = computed(() =>
     this.visibleTrackMarkers().some((marker) => marker.time < this.currentTime())
   );
@@ -90,6 +93,7 @@ export class Waveform {
   });
 
   private loadId = 0;
+  private playbackFrameId: number | null = null;
 
   public constructor() {
     effect((onCleanup) => {
@@ -148,6 +152,16 @@ export class Waveform {
     this.currentTime.set(audio.currentTime);
   }
 
+  public onAudioPlay(audio: HTMLAudioElement): void {
+    this.isPlaying.set(true);
+    this.updatePlaybackFrame(audio);
+  }
+
+  public onAudioPause(): void {
+    this.isPlaying.set(false);
+    this.stopPlaybackFrame();
+  }
+
   public skipToCue(audio: HTMLAudioElement, direction: 'previous' | 'next'): void {
     if (!Number.isFinite(audio.duration)) {
       return;
@@ -167,7 +181,7 @@ export class Waveform {
   }
 
   public onAudioEnded(): void {
-    this.isPlaying.set(false);
+    this.onAudioPause();
   }
 
   public onMarkerKeydown(event: KeyboardEvent, marker: PositionedCueMarker): void {
@@ -179,6 +193,7 @@ export class Waveform {
 
   private async loadWaveform(file: File): Promise<void> {
     const loadId = ++this.loadId;
+    this.stopPlaybackFrame();
     this.isLoading.set(true);
     this.isPlaying.set(false);
     this.currentTime.set(0);
@@ -233,5 +248,22 @@ export class Waveform {
     const seconds = totalSeconds % 60;
 
     return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  private updatePlaybackFrame(audio: HTMLAudioElement): void {
+    this.currentTime.set(audio.currentTime);
+    if (audio.paused || audio.ended) {
+      this.onAudioPause();
+      return;
+    }
+
+    this.playbackFrameId = requestAnimationFrame(() => this.updatePlaybackFrame(audio));
+  }
+
+  private stopPlaybackFrame(): void {
+    if (this.playbackFrameId !== null) {
+      cancelAnimationFrame(this.playbackFrameId);
+      this.playbackFrameId = null;
+    }
   }
 }
