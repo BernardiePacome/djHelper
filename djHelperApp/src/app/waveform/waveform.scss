@@ -21,7 +21,7 @@ h2 {
   font-size: 1.25rem;
 }
 
-.audio-name,
+.audio-file-name,
 .waveform-duration,
 .waveform-message {
   color: #b9c5e7;
@@ -49,11 +49,11 @@ h2 {
 }
 
 .playback-toggle {
-  display: grid;
-  width: 40px;
+  display: flex;
+  width: auto;
+  min-width: 40px;
   height: 40px;
-  padding: 8px;
-  place-items: center;
+  padding: 8px 12px;
 }
 
 .playback-button:hover {

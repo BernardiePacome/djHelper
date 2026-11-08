@@ -1,7 +1,7 @@
 <section class="waveform-panel" aria-label="Audio waveform">
   <div class="waveform-header">
     <h2>Waveform</h2>
-    <span class="audio-name">{{ file().name }}</span>
+    <span class="audio-file-name">{{ file().name }}</span>
   </div>
 
   @if (isLoading()) {
@@ -21,28 +21,33 @@
     ></audio>
     <div class="player-controls">
       <button
+        (click)="skipToCue(audioPlayer, 'previous')"
+        [disabled]="!hasPreviousCue()"
         type="button"
         class="playback-button playback-toggle"
-        aria-label="Previous cue point"
-        [disabled]="!hasPreviousCue()"
-        (click)="skipToCue(audioPlayer, 'previous')"
+        aria-label="Previous Transition"
       >
         <app-playback-icon [name]="'previous'" />
       </button>
+
+      <!-- Determine the playback action based on whether the audio is currently playing or paused. If it is playing, the action will be 'pause', otherwise it will be 'play'. -->
+      @let playbackAction = isPlaying() ? 'pause' : 'play';
+
       <button
-        type="button"
-        class="playback-button playback-toggle"
-        [attr.aria-label]="isPlaying() ? 'Pause' : 'Play'"
         (click)="togglePlayback(audioPlayer)"
-      >
-        <app-playback-icon [name]="isPlaying() ? 'pause' : 'play'" />
-      </button>
-      <button
+        [attr.aria-label]="playbackAction"
         type="button"
         class="playback-button playback-toggle"
-        aria-label="Next cue point"
-        [disabled]="!hasNextCue()"
+      >
+        <app-playback-icon [name]="playbackAction" />
+      </button>
+
+      <button
         (click)="skipToCue(audioPlayer, 'next')"
+        [disabled]="!hasNextCue()"
+        type="button"
+        class="playback-button playback-toggle"
+        aria-label="Next Transition"
       >
         <app-playback-icon [name]="'next'" />
       </button>
@@ -53,33 +58,33 @@
     }
     <div class="waveform-container">
       <svg
+        (click)="seekAudio($event, audioPlayer)"
+        [attr.aria-label]="'Audio waveform, duration ' + duration().toFixed(1) + ' seconds'"
         class="waveform"
         viewBox="0 0 1200 100"
         preserveAspectRatio="none"
         role="group"
-        [attr.aria-label]="'Audio waveform, duration ' + duration().toFixed(1) + ' seconds'"
-        (click)="seekAudio($event, audioPlayer)"
       >
         <path [attr.d]="waveformPath()" />
         <line
           class="playback-cursor"
           [attr.x1]="playbackPosition()"
-          y1="0"
           [attr.x2]="playbackPosition()"
+          y1="0"
           y2="100"
         />
         @for (marker of visibleTrackMarkers(); track marker.index) {
           <g
-            class="track-marker"
-            role="button"
-            tabindex="0"
-            [attr.aria-label]="marker.artist + ' - ' + marker.title"
             (mouseenter)="showMarkerTooltip(marker)"
             (mouseleave)="hideMarkerTooltip()"
             (focus)="showMarkerTooltip(marker)"
             (blur)="hideMarkerTooltip()"
             (click)="$event.stopPropagation(); togglePinnedMarker(marker)"
             (keydown)="onMarkerKeydown($event, marker)"
+            [attr.aria-label]="marker.artist + ' - ' + marker.title"
+            class="track-marker"
+            role="button"
+            tabindex="0"
           >
             <line class="track-marker-hitbox" [attr.x1]="marker.x" y1="0" [attr.x2]="marker.x" y2="100" />
             <line class="track-marker-line" [attr.x1]="marker.x" y1="0" [attr.x2]="marker.x" y2="100" />
@@ -88,10 +93,10 @@
       </svg>
       @for (tooltip of activeTooltipMarkers(); track tooltip.position) {
         <div
-          class="track-tooltip"
           [class.track-tooltip-bottom]="tooltip.position === 'bottom'"
-          role="tooltip"
           [style.left.%]="(tooltip.marker.x / 1200) * 100"
+          class="track-tooltip"
+          role="tooltip"
         >
           {{ tooltip.marker.artist }} - {{ tooltip.marker.title }}
         </div>
