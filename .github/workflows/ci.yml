@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -34,13 +38,25 @@ jobs:
         run: npm test -- --watch=false
 
       - name: Build production app
-        run: npm run build
+        run: npm run build -- --base-href /djHelper/
 
-      - name: Upload production build
+      - name: Upload GitHub Pages artifact
         if: github.event_name == 'push'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: djHelperApp-production
-          path: djHelperApp/dist/djHelperApp/
-          if-no-files-found: error
-          retention-days: 7
+          path: djHelperApp/dist/djHelperApp/browser/
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
