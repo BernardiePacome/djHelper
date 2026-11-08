@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CueFileDropzone } from './cue-file-dropzone/cue-file-dropzone';
 import { PlaylistOutput } from './playlist-output/playlist-output';
 import { TrackList } from './track-list/track-list';
@@ -40,18 +40,14 @@ function isMockFileManifest(value: unknown): value is MockFileManifest {
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App implements OnInit {
+export class App {
+  public readonly isMockMode = new URLSearchParams(location.search).get('mock') === '1';
   public readonly fileName = signal('');
   public readonly errorMessage = signal('');
   public readonly playlist = signal<SetTrack[]>([]);
   public readonly audioFile = signal<File | null>(null);
   public readonly trackMarkers = signal<CueMarker[]>([]);
-
-  public ngOnInit(): void {
-    if (new URLSearchParams(location.search).get('mock') === '1') {
-      void this.loadMockFiles();
-    }
-  }
+  public readonly isLoadingMockFiles = signal(false);
 
   public onFilesSelected(files: File[]): void {
     const cueFile = files.find((file) => /\.(cue|txt)$/i.test(file.name));
@@ -90,7 +86,10 @@ export class App implements OnInit {
     this.trackMarkers.set([]);
   }
 
-  private async loadMockFiles(): Promise<void> {
+  public async loadMockFiles(): Promise<void> {
+    this.isLoadingMockFiles.set(true);
+    this.errorMessage.set('');
+
     try {
       const manifestResponse = await fetch('/api/mock-files');
       if (!manifestResponse.ok) {
@@ -117,6 +116,8 @@ export class App implements OnInit {
     } catch (error) {
       const details = error instanceof Error ? error.message : 'Unknown error';
       this.errorMessage.set(`Unable to load mock files: ${details}`);
+    } finally {
+      this.isLoadingMockFiles.set(false);
     }
   }
 

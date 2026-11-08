@@ -98,7 +98,7 @@
           class="track-tooltip"
           role="tooltip"
         >
-          {{ tooltip.marker.artist }} - {{ tooltip.marker.title }}
+          <app-track-tooltip-text [marker]="tooltip.marker" />
         </div>
       }
     </div>

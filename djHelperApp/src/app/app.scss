@@ -18,9 +18,26 @@
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 16px;
+}
+
+.mock-load-button {
+  flex: 0 0 auto;
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7596ff, #7f5bff);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mock-load-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .main-title {
