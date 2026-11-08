@@ -24,22 +24,21 @@ type PlaybackIconName = 'play' | 'pause' | 'previous' | 'next';
         height: 20px;
       }
     `
-  ]
+  ],
 })
-
 
 export class PlaybackIcon {
   private readonly assets: Record<PlaybackIconName, string> = {
-    play: '/assets/icons/play.svg',
-    pause: '/assets/icons/pause.svg',
-    previous: '/assets/icons/previous.svg',
-    next: '/assets/icons/next.svg'
+    play: 'assets/icons/play.svg',
+    pause: 'assets/icons/pause.svg',
+    previous: 'assets/icons/previous.svg',
+    next: 'assets/icons/next.svg',
   };
   private readonly labels: Record<PlaybackIconName, string> = {
     play: 'Play',
     pause: 'Pause',
     previous: 'Previous Transition',
-    next: 'Next Transition'
+    next: 'Next Transition',
   };
 
   public readonly name = input.required<PlaybackIconName>();
