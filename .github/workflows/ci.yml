@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: djHelperApp
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: djHelperApp/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run tests
+        run: npm test -- --watch=false
+
+      - name: Build production app
+        run: npm run build
+
+      - name: Upload production build
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: djHelperApp-production
+          path: djHelperApp/dist/djHelperApp/
+          if-no-files-found: error
+          retention-days: 7
