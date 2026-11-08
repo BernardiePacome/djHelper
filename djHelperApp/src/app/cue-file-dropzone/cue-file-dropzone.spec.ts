@@ -53,10 +53,10 @@ describe('CueFileDropzone', () => {
     const event = new Event('drop') as DragEvent;
     const preventDefault = vi.spyOn(event, 'preventDefault');
     Object.defineProperty(event, 'dataTransfer', { value: { files: [file] } });
+
     const selectedFiles: File[][] = [];
     component.filesSelected.subscribe((files) => selectedFiles.push(files));
     component.isDragging.set(true);
-
     component.onDrop(event);
 
     expect(preventDefault).toHaveBeenCalledOnce();
@@ -67,10 +67,11 @@ describe('CueFileDropzone', () => {
   it('does not emit when no files are dropped', () => {
     const component = TestBed.createComponent(CueFileDropzone).componentInstance;
     const event = new Event('drop') as DragEvent;
+
     Object.defineProperty(event, 'dataTransfer', { value: null });
+    
     const selectedFiles: File[][] = [];
     component.filesSelected.subscribe((files) => selectedFiles.push(files));
-
     component.onDrop(event);
 
     expect(selectedFiles).toEqual([]);
