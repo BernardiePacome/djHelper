@@ -57,6 +57,13 @@
       <p class="waveform-error" role="alert">{{ playbackError() }}</p>
     }
     <div class="waveform-container">
+      <img
+        src="assets/icons/play.svg"
+        class="playback-cursor"
+        [style.left.%]="(playbackPosition() / 1200) * 100"
+        alt=""
+        aria-hidden="true"
+      />
       <svg
         (click)="seekAudio($event, audioPlayer)"
         [attr.aria-label]="'Audio waveform, duration ' + duration().toFixed(1) + ' seconds'"
@@ -66,13 +73,6 @@
         role="group"
       >
         <path [attr.d]="waveformPath()" />
-        <line
-          class="playback-cursor"
-          [attr.x1]="playbackPosition()"
-          [attr.x2]="playbackPosition()"
-          y1="0"
-          y2="100"
-        />
         @for (marker of visibleTrackMarkers(); track marker.index) {
           <g
             (mouseenter)="showMarkerTooltip(marker)"

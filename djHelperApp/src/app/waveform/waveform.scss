@@ -32,6 +32,17 @@ h2 {
   position: relative;
 }
 
+.playback-cursor {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) saturate(100%) invert(27%) sepia(95%) saturate(5344%) hue-rotate(341deg) brightness(102%) contrast(101%);
+  pointer-events: none;
+  transform: translateX(-50%) rotate(90deg);
+}
+
 .player-controls {
   display: flex;
   align-items: center;
@@ -102,13 +113,6 @@ h2 {
 .waveform .track-marker-line {
   stroke: #fff;
   stroke-width: 1;
-  vector-effect: non-scaling-stroke;
-  pointer-events: none;
-}
-
-.waveform .playback-cursor {
-  stroke: #ff3b4f;
-  stroke-width: 3;
   vector-effect: non-scaling-stroke;
   pointer-events: none;
 }
