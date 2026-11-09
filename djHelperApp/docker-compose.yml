@@ -1,7 +1,0 @@
-services:
-  djhelper:
-    build: .
-    ports:
-      - '8080:80'
-    volumes:
-      - ./mocks:/usr/share/nginx/html/mocks:ro
