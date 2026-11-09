@@ -52,7 +52,7 @@ h2 {
 
 .playback-button {
   padding: 7px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px transparent rgba(255, 255, 255, 0);
   border-radius: 8px;
   background: #27395f;
   color: #edf2ff;
@@ -93,7 +93,7 @@ h2 {
   width: 100%;
   height: 140px;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: 1px;
   fill: #8aa4ff;
   cursor: pointer;
   background:
@@ -102,8 +102,9 @@ h2 {
 }
 
 .waveform-container {
-  padding: 1px;
-  background-color: #fff;
+  padding: 3px;
+  background-color: white;
+  border-radius: 5px;
 }
 
 .waveform .track-marker-hitbox {
@@ -130,9 +131,7 @@ h2 {
 
 .track-tooltip {
   position: absolute;
-  z-index: 1;
   top: 8px;
-  max-width: calc(100% - 16px);
   padding: 6px 10px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 6px;
@@ -140,9 +139,9 @@ h2 {
   color: #edf2ff;
   font-size: 0.8rem;
   line-height: 1.3;
-  overflow-wrap: anywhere;
   pointer-events: none;
   transform: translateX(-50%);
+  z-index: 999;
 }
 
 .track-tooltip-bottom {

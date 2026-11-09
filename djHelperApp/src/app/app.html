@@ -1,6 +1,6 @@
 <main class="djhelper-page">
-  <section class="app-shell">
-    <header class="topbar">
+  <section class="app-main">
+    <header class="app-topbar">
       @if (isMockMode) {
         <button
           class="mock-load-button"
@@ -11,11 +11,12 @@
           {{ isLoadingMockFiles() ? 'Loading mock files…' : 'Load mock cue and audio' }}
         </button>
       }
-      <span class="d-flex w-100">
-        <p class="main-title">DJ Helper</p><p class="artist-name">by PACOME</p>
-      </span>
+      <div class="d-flex w-100 app-header">
+        <span class="main-title">DJ ToolBox ϕ</span><span class="artist-name">© PACOME</span>
+      </div>
     </header>
-
+    <p>for rekordBox</p>
+    // Mock Zone
     @if (!isMockMode) {
       <app-cue-file-dropzone
         [fileName]="fileName()"
@@ -31,6 +32,7 @@
     @if (audioFile(); as selectedAudio) {
       <app-waveform [file]="selectedAudio" [trackMarkers]="trackMarkers()" />
     }
+    // End Mock Zone
   </section>
 
   <section>
@@ -39,4 +41,6 @@
       <app-playlist-output [tracks]="playlist()" />
     }
   </section>
+  
+  <section>® This product is register under  Registered under MIT liscense 2026</section>
 </main>

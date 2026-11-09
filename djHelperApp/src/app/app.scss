@@ -13,13 +13,17 @@
   margin: auto 0;
 }
 
-.app-shell {
+.app-main {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: stretch
 }
 
-.topbar {
+.app-header {
+justify-content: space-between;
+}
+
+.app-topbar {
   display: flex;
   align-items: center;
   justify-content: flex-start;

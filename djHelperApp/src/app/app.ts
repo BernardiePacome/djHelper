@@ -50,6 +50,7 @@ export class App {
   public readonly isLoadingMockFiles = signal(false);
 
   public onFilesSelected(files: File[]): void {
+    this.clearPlaylist();
     const cueFile = files.find((file) => /\.(cue|txt)$/i.test(file.name));
     const audioFiles = files.filter((file) =>
       /\.(wav|mp3|aiff|aif|flac|ogg|m4a|aac|opus|wma)$/i.test(file.name)
