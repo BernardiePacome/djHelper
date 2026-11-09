@@ -30,6 +30,7 @@ h2 {
 
 .waveform-container {
   position: relative;
+  border: #fff 1px;
 }
 
 .playback-cursor {
@@ -93,14 +94,16 @@ h2 {
   height: 140px;
   overflow: hidden;
   border-radius: 10px;
+  fill: #8aa4ff;
   cursor: pointer;
   background:
     linear-gradient(to bottom, transparent calc(50% - 1px), rgba(255, 255, 255, 0.08) calc(50% - 1px), rgba(255, 255, 255, 0.08) calc(50% + 1px), transparent calc(50% + 1px)),
     rgba(5, 9, 18, 0.9);
 }
 
-.waveform path {
-  fill: #8aa4ff;
+.waveform-container {
+  padding: 1px;
+  background-color: #fff;
 }
 
 .waveform .track-marker-hitbox {
