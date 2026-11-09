@@ -3,24 +3,14 @@
   min-height: 100%;
 }
 
-.djhelper-page {
-  width: min(1100px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 48px 0 80px;
-}
-
-.artist-name{
-  margin: auto 0;
+.app-header {
+  justify-content: space-between;
 }
 
 .app-main {
   display: flex;
   flex-direction: column;
   align-items: stretch
-}
-
-.app-header {
-justify-content: space-between;
 }
 
 .app-topbar {
@@ -30,6 +20,35 @@ justify-content: space-between;
   gap: 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   padding-bottom: 16px;
+}
+
+.artist-name {
+  margin: auto 0;
+}
+
+.djhelper-page {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 48px 0 80px;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.1;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.main-title {
+  margin: 0 0 6px;
+  font-size: 2em;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8aa4ff;
 }
 
 .mock-load-button {
@@ -46,23 +65,4 @@ justify-content: space-between;
 .mock-load-button:disabled {
   opacity: 0.65;
   cursor: wait;
-}
-
-.main-title {
-  margin: 0 0 6px;
-  font-size: 2em;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #8aa4ff;
-}
-
-h1 {
-  margin: 0;
-  font-size: clamp(2rem, 4vw, 3.25rem);
-  line-height: 1.1;
-}
-
-h2 {
-  margin: 0;
-  font-size: 1.25rem;
 }
