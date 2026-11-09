@@ -16,12 +16,105 @@ interface PositionedCueMarker extends CueMarker {
   styleUrl: './waveform.scss'
 })
 export class Waveform {
-  private readonly tooltipSeparationThreshold = 36;
-  private readonly hoveredMarker = signal<PositionedCueMarker | null>(null);
-  private readonly pinnedMarker = signal<PositionedCueMarker | null>(null);
+  // Constructor
+    public constructor() {
+    effect((onCleanup) => {
+      const source = URL.createObjectURL(this.file());
+      this.audioSource.set(source);
+      onCleanup(() => URL.revokeObjectURL(source));
+    });
 
+    effect(() => {
+      void this.loadWaveform(this.file());
+    });
+  }
+  // Constants
+  private readonly tooltipSeparationThreshold = 36;
+    // Inputs 
   public readonly file = input.required<File>();
   public readonly trackMarkers = input<CueMarker[]>([]);
+  // Signals
+  private readonly hoveredMarker = signal<PositionedCueMarker | null>(null);
+  private loadId = 0;
+  private playbackFrameId: number | null = null;
+  private readonly pinnedMarker = signal<PositionedCueMarker | null>(null);
+  
+   private async loadWaveform(file: File): Promise<void> {
+    const loadId = ++this.loadId;
+    this.stopPlaybackFrame();
+    this.isLoading.set(true);
+    this.isPlaying.set(false);
+    this.currentTime.set(0);
+    this.playbackError.set('');
+    this.errorMessage.set('');
+    this.duration.set(0);
+    this.peaks.set([]);
+
+    let audioContext: AudioContext | undefined;
+
+    try {
+      audioContext = new AudioContext();
+      const audioBuffer = await audioContext.decodeAudioData(await file.arrayBuffer());
+
+      if (loadId !== this.loadId) {
+        return;
+      }
+
+      const samples = audioBuffer.getChannelData(0);
+      const bucketSize = Math.max(1, Math.ceil(samples.length / 1200));
+      const waveformPeaks: number[] = [];
+
+      for (let start = 0; start < samples.length; start += bucketSize) {
+        let peak = 0;
+        const end = Math.min(start + bucketSize, samples.length);
+        for (let index = start; index < end; index++) {
+          peak = Math.max(peak, Math.abs(samples[index]));
+        }
+        waveformPeaks.push(peak);
+      }
+
+      this.peaks.set(waveformPeaks);
+      this.duration.set(audioBuffer.duration);
+    } catch {
+      if (loadId === this.loadId) {
+        this.errorMessage.set(`Unable to decode ${file.name}. Try a browser-supported audio format such as WAV, MP3, or AIFF.`);
+      }
+    } finally {
+      if (audioContext && audioContext.state !== 'closed') {
+        await audioContext.close();
+      }
+      if (loadId === this.loadId) {
+        this.isLoading.set(false);
+      }
+    }
+  }
+
+  private formatTime(time: number): string {
+    const totalSeconds = Math.floor(time);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  private updatePlaybackFrame(audio: HTMLAudioElement): void {
+    this.currentTime.set(audio.currentTime);
+    if (audio.paused || audio.ended) {
+      this.onAudioPause();
+      return;
+    }
+
+    this.playbackFrameId = requestAnimationFrame(() => this.updatePlaybackFrame(audio));
+  }
+
+  private stopPlaybackFrame(): void {
+    if (this.playbackFrameId !== null) {
+      cancelAnimationFrame(this.playbackFrameId);
+      this.playbackFrameId = null;
+    }
+  }
+
   public readonly audioSource = signal('');
   public readonly isLoading = signal(true);
   public readonly isPlaying = signal(false);
@@ -30,16 +123,22 @@ export class Waveform {
   public readonly duration = signal(0);
   public readonly currentTime = signal(0);
   public readonly peaks = signal<number[]>([]);
+
+  // Computed
   public readonly playbackPosition = computed(() =>
     this.duration() > 0 ? (this.currentTime() / this.duration()) * 1200 : 0
   );
+
   public readonly hasPreviousCue = computed(() =>
     this.visibleTrackMarkers().some((marker) => marker.time < this.currentTime())
   );
+
   public readonly hasNextCue = computed(() =>
     this.visibleTrackMarkers().some((marker) => marker.time > this.currentTime())
   );
+
   public readonly formattedCurrentTime = computed(() => this.formatTime(this.currentTime()));
+
   public readonly formattedDuration = computed(() => {
     return this.formatTime(this.duration());
   });
@@ -49,7 +148,6 @@ export class Waveform {
     if (peaks.length === 0) {
       return '';
     }
-
     const columnWidth = 1200 / peaks.length;
     return peaks
       .map((peak, index) => {
@@ -61,6 +159,7 @@ export class Waveform {
       })
       .join('');
   });
+
   public readonly visibleTrackMarkers = computed(() =>
     this.duration() > 0
       ? this.trackMarkers()
@@ -68,6 +167,7 @@ export class Waveform {
           .filter((marker) => Number.isFinite(marker.time) && marker.time >= 0 && marker.time <= this.duration())
       : []
   );
+
   public readonly activeTooltipMarkers = computed(() => {
     const activeMarker = this.hoveredMarker() ?? this.pinnedMarker();
     if (!activeMarker) {
@@ -93,20 +193,6 @@ export class Waveform {
     ];
   });
 
-  private loadId = 0;
-  private playbackFrameId: number | null = null;
-
-  public constructor() {
-    effect((onCleanup) => {
-      const source = URL.createObjectURL(this.file());
-      this.audioSource.set(source);
-      onCleanup(() => URL.revokeObjectURL(source));
-    });
-
-    effect(() => {
-      void this.loadWaveform(this.file());
-    });
-  }
 
   public showMarkerTooltip(marker: PositionedCueMarker): void {
     this.hoveredMarker.set(marker);
@@ -189,82 +275,6 @@ export class Waveform {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       this.togglePinnedMarker(marker);
-    }
-  }
-
-  private async loadWaveform(file: File): Promise<void> {
-    const loadId = ++this.loadId;
-    this.stopPlaybackFrame();
-    this.isLoading.set(true);
-    this.isPlaying.set(false);
-    this.currentTime.set(0);
-    this.playbackError.set('');
-    this.errorMessage.set('');
-    this.duration.set(0);
-    this.peaks.set([]);
-
-    let audioContext: AudioContext | undefined;
-
-    try {
-      audioContext = new AudioContext();
-      const audioBuffer = await audioContext.decodeAudioData(await file.arrayBuffer());
-
-      if (loadId !== this.loadId) {
-        return;
-      }
-
-      const samples = audioBuffer.getChannelData(0);
-      const bucketSize = Math.max(1, Math.ceil(samples.length / 1200));
-      const waveformPeaks: number[] = [];
-
-      for (let start = 0; start < samples.length; start += bucketSize) {
-        let peak = 0;
-        const end = Math.min(start + bucketSize, samples.length);
-        for (let index = start; index < end; index++) {
-          peak = Math.max(peak, Math.abs(samples[index]));
-        }
-        waveformPeaks.push(peak);
-      }
-
-      this.peaks.set(waveformPeaks);
-      this.duration.set(audioBuffer.duration);
-    } catch {
-      if (loadId === this.loadId) {
-        this.errorMessage.set(`Unable to decode ${file.name}. Try a browser-supported audio format such as WAV, MP3, or AIFF.`);
-      }
-    } finally {
-      if (audioContext && audioContext.state !== 'closed') {
-        await audioContext.close();
-      }
-      if (loadId === this.loadId) {
-        this.isLoading.set(false);
-      }
-    }
-  }
-
-  private formatTime(time: number): string {
-    const totalSeconds = Math.floor(time);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-  }
-
-  private updatePlaybackFrame(audio: HTMLAudioElement): void {
-    this.currentTime.set(audio.currentTime);
-    if (audio.paused || audio.ended) {
-      this.onAudioPause();
-      return;
-    }
-
-    this.playbackFrameId = requestAnimationFrame(() => this.updatePlaybackFrame(audio));
-  }
-
-  private stopPlaybackFrame(): void {
-    if (this.playbackFrameId !== null) {
-      cancelAnimationFrame(this.playbackFrameId);
-      this.playbackFrameId = null;
     }
   }
 }
