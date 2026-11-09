@@ -16,7 +16,6 @@
       </div>
     </header>
     <p>for rekordBox</p>
-    // Mock Zone
     @if (!isMockMode) {
       <app-cue-file-dropzone
         [fileName]="fileName()"
@@ -32,7 +31,6 @@
     @if (audioFile(); as selectedAudio) {
       <app-waveform [file]="selectedAudio" [trackMarkers]="trackMarkers()" />
     }
-    // End Mock Zone
   </section>
 
   <section>

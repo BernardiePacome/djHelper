@@ -4,6 +4,7 @@ import { PlaylistOutput } from './playlist-output/playlist-output';
 import { TrackList } from './track-list/track-list';
 import { Waveform } from './waveform/waveform';
 import type { CueMarker, SetTrack } from './set-track';
+import { isMockModeUrl } from '../mocks/mock-mode';
 
 interface MockFile {
   name: string;
@@ -41,7 +42,7 @@ function isMockFileManifest(value: unknown): value is MockFileManifest {
   styleUrl: './app.scss'
 })
 export class App {
-  public readonly isMockMode = new URLSearchParams(location.search).get('mock') === '1';
+  public readonly isMockMode = isMockModeUrl(new URL(location.href));
   public readonly fileName = signal('');
   public readonly errorMessage = signal('');
   public readonly playlist = signal<SetTrack[]>([]);

@@ -24,15 +24,15 @@ Then open `http://localhost:4200/`.
 
 ## Mock server
 
-Start the app behind nginx with the cue and audio fixtures mounted from `mocks/`:
+Start the app with the cue and audio fixtures served from `mocks/`:
 
 ```bash
 npm run mock:server
 ```
 
-Open `http://localhost:8080/`. In mock mode the upload dropzone is hidden; click **Load mock cue and audio** to start MSW, fetch the fixture manifest, and load the `.cue` and `.mp3` from nginx. The normal Angular development server continues to use manual file uploads.
+Open `http://localhost:8080/`. Port 8080 automatically enables mock mode; the upload dropzone is hidden. Click **Load mock cue and audio** to fetch the fixture manifest and load the `.cue` and `.mp3`. The normal Angular development server continues to use manual file uploads, or mock mode can be enabled there with `?mock=1`.
 
-Stop the server with `Ctrl+C`. Fixture files can be replaced in `mocks/` without rebuilding the image.
+Stop the server with `Ctrl+C`. Fixture files can be replaced in `mocks/` without rebuilding.
 
 ## Production build
 
