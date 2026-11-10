@@ -1,7 +1,18 @@
 <section class="output-panel">
   <div class="output-header">
     <h2>Playlist</h2>
-    <button type="button" class="primary-button" (click)="copyPlaylist()">Copy to Clipboard</button>
+    <div class="output-actions">
+      <button type="button" class="primary-button" (click)="copyPlaylist()">Copy to Clipboard</button>
+      <button
+        type="button"
+        class="secondary-button"
+        [disabled]="!canSave() || isSaving() || isSaved()"
+        [title]="canSave() || isSaved() ? '' : 'Load a cue file together with its audio file to save the set'"
+        (click)="saveRequested.emit()"
+      >
+        {{ isSaving() ? 'Saving…' : isSaved() ? 'Saved ✓' : 'Save Set' }}
+      </button>
+    </div>
   </div>
 
   <textarea rows="18" readonly [value]="formattedText()"></textarea>

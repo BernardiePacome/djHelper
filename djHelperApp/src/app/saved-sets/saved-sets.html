@@ -1,0 +1,63 @@
+<section class="saved-sets">
+  <div class="saved-sets-header">
+    <h2>Saved Sets</h2>
+    @if (storage(); as usage) {
+      <span class="storage">{{ formatBytes(usage.usedBytes) }} of {{ formatBytes(usage.quotaBytes) }} used</span>
+    }
+  </div>
+
+  @if (errorMessage()) {
+    <p class="error-message" role="alert">{{ errorMessage() }}</p>
+  }
+
+  @switch (status()) {
+    @case ('loading') {
+      <p class="muted">Loading saved sets…</p>
+    }
+    @case ('unavailable') {
+      <p class="muted">Saved sets are unavailable because the server can't be reached.</p>
+    }
+    @default {
+      @if (sets().length === 0) {
+        <p class="muted">No saved sets yet. Load a cue and audio file, then choose Save Set.</p>
+      } @else {
+        <ul class="set-list">
+          @for (set of sets(); track set.id) {
+            <li class="set-row">
+              <div class="set-info">
+                <span class="set-name">{{ set.name }}</span>
+                <span class="set-meta">
+                  {{ set.audio.name }} · {{ formatBytes(set.size) }} · {{ set.createdAt | date: 'mediumDate' }}
+                </span>
+              </div>
+
+              <div class="set-actions">
+                @if (pendingDeleteId() === set.id) {
+                  <button type="button" class="danger-button" (click)="delete(set)">Confirm delete</button>
+                  <button type="button" class="secondary-button" (click)="pendingDeleteId.set(null)">Cancel</button>
+                } @else {
+                  <button
+                    type="button"
+                    class="primary-button"
+                    [disabled]="busySetId() !== null"
+                    (click)="load(set)"
+                  >
+                    {{ busySetId() === set.id ? 'Working…' : 'Load' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary-button"
+                    [disabled]="busySetId() !== null"
+                    (click)="pendingDeleteId.set(set.id)"
+                  >
+                    Delete
+                  </button>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+</section>

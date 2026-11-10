@@ -36,9 +36,17 @@
   <section>
     @if (playlist().length > 0) {
       <app-track-list [tracks]="playlist()" />
-      <app-playlist-output [tracks]="playlist()" />
+      <app-playlist-output
+        [tracks]="playlist()"
+        [canSave]="canSaveSet()"
+        [isSaving]="isSavingSet()"
+        [isSaved]="isCurrentSetSaved()"
+        (saveRequested)="saveSet()"
+      />
     }
   </section>
+
+  <app-saved-sets (setLoaded)="onSavedSetLoaded($event)" />
   
   <section>® This product is register under  Registered under MIT liscense 2026</section>
 </main>

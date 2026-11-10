@@ -9,6 +9,11 @@
   box-sizing: border-box;
 }
 
+// Without this the browser keeps the Saved Sets panel in view while a loaded set renders above it.
+html {
+  overflow-anchor: none;
+}
+
 html,
 body {
   margin: 0;
