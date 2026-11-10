@@ -1,4 +1,4 @@
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import type { SetTrack } from '../set-track';
 
 @Component({
@@ -10,6 +10,10 @@ import type { SetTrack } from '../set-track';
 export class PlaylistOutput {
 
   public readonly tracks = input.required<SetTrack[]>();
+  public readonly canSave = input(false);
+  public readonly isSaving = input(false);
+  public readonly isSaved = input(false);
+  public readonly saveRequested = output<void>();
 
   public readonly formattedText = computed(() =>
     this.tracks()

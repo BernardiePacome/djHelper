@@ -10,6 +10,7 @@ A rekordBox cue-file helper rebuilt in Angular 21.
 - Removes duplicate tracks by artist/title
 - Displays a copy-ready formatted playlist string
 - Supports clipboard copy and a minimal dark UI
+- With the API running (see the root `README.md`), **Save Set** stores the cue and audio on the server and **Saved Sets** lists them for reloading
 
 The waveform component decodes browser-supported audio formats such as WAV, MP3, and AIFF. Drop the cue and audio together, or add the audio file separately before or after the cue.
 
@@ -20,7 +21,7 @@ npm install --legacy-peer-deps
 npm start
 ```
 
-Then open `http://localhost:4200/`.
+Then open `http://localhost:4200/`. Saved sets need the API from `server/`; without it the Saved Sets panel reports that the server is unavailable.
 
 ## Mock server
 

@@ -33,7 +33,7 @@ export interface SetStore {
   insert(set: StoredSet): void;
   list(): StoredSet[];
   get(id: string): StoredSet | undefined;
-  // Deletes the set and both of its files rows atomically; returns the removed set.
+  // Deletes the set and its two file rows atomically; returns the removed set.
   remove(id: string): StoredSet | undefined;
 }
 
@@ -81,7 +81,7 @@ export function createFileStore(database: DatabaseSync): FileStore {
   const totalStatement = database.prepare('SELECT COALESCE(SUM(size), 0) AS total FROM files');
   const idsStatement = database.prepare('SELECT id FROM files');
   const inSetStatement = database.prepare(
-    'SELECT 1 AS found FROM sets WHERE cue_file_id = ?1 OR audio_file_id = ?1',
+    'SELECT 1 AS found FROM sets WHERE cue_file_id = ? OR audio_file_id = ?',
   );
   const unattachedStatement = database.prepare(`
     SELECT id FROM files
@@ -110,7 +110,7 @@ export function createFileStore(database: DatabaseSync): FileStore {
       return new Set(idsStatement.all().map((row) => String(row['id'])));
     },
     isInSet(id) {
-      return inSetStatement.get(id) !== undefined;
+      return inSetStatement.get(id, id) !== undefined;
     },
     unattachedBefore(createdBefore) {
       return unattachedStatement.all(createdBefore).map((row) => String(row['id']));

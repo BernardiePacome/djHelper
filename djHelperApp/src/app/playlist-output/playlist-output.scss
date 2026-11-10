@@ -21,6 +21,32 @@ h2 {
   font-size: 1.25rem;
 }
 
+.output-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.secondary-button {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: #edf2ff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.secondary-button:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.secondary-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .primary-button {
   border: none;
   border-radius: 10px;

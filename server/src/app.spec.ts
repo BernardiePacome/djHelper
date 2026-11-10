@@ -5,6 +5,7 @@ import type { FastifyInstance } from 'fastify';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildApp } from './app.ts';
 import { DEFAULT_QUOTA_BYTES, loadConfig } from './config.ts';
+import { openDatabase } from './db.ts';
 
 const CUE_CONTENT = 'TRACK 01 AUDIO\n  TITLE "Song"\n  INDEX 01 00:00:00\n';
 
@@ -132,6 +133,135 @@ describe('server', () => {
 
     await start();
     expect(existsSync(orphan)).toBe(false);
+  });
+});
+
+describe('saved sets', () => {
+  let dataDir: string;
+  let app: FastifyInstance;
+
+  const start = async (quotaBytes = DEFAULT_QUOTA_BYTES) => {
+    app = await buildApp({ host: '127.0.0.1', port: 0, dataDir, quotaBytes });
+  };
+
+  const upload = async (content: string | Uint8Array, fileName: string) => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/files',
+      ...(await multipartBody(content, fileName)),
+    });
+    return response.json();
+  };
+
+  const createSet = (body: object) => app.inject({ method: 'POST', url: '/api/sets', payload: body });
+
+  const uploadPair = async () => ({
+    cue: await upload(CUE_CONTENT, 'set.cue'),
+    audio: await upload(new Uint8Array([1, 2, 3, 4]), 'set.mp3'),
+  });
+
+  beforeEach(() => {
+    dataDir = mkdtempSync(path.join(tmpdir(), 'djhelper-'));
+  });
+
+  afterEach(async () => {
+    await app?.close();
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+
+  it('saves, lists and deletes a set together with its files', async () => {
+    await start();
+    const { cue, audio } = await uploadPair();
+
+    const created = await createSet({ name: '  Friday night  ', cueFileId: cue.id, audioFileId: audio.id });
+    expect(created.statusCode).toBe(201);
+    const set = created.json();
+    expect(set).toMatchObject({
+      name: 'Friday night',
+      size: CUE_CONTENT.length + 4,
+      cue: { id: cue.id, name: 'set.cue' },
+      audio: { id: audio.id, name: 'set.mp3' },
+    });
+
+    expect((await app.inject('/api/sets')).json().sets).toHaveLength(1);
+
+    const removed = await app.inject({ method: 'DELETE', url: `/api/sets/${set.id}` });
+    expect(removed.statusCode).toBe(204);
+    expect((await app.inject('/api/sets')).json().sets).toEqual([]);
+    expect((await app.inject(cue.url)).statusCode).toBe(404);
+    expect((await app.inject(audio.url)).statusCode).toBe(404);
+    expect(readdirSync(path.join(dataDir, 'uploads'))).toEqual([]);
+    expect((await app.inject('/api/storage')).json().usedBytes).toBeLessThan(1024 * 1024);
+  });
+
+  it('keeps sets and their audio across a restart', async () => {
+    await start();
+    const { cue, audio } = await uploadPair();
+    await createSet({ name: 'Persisted', cueFileId: cue.id, audioFileId: audio.id });
+    await app.close();
+
+    await start();
+    const [set] = (await app.inject('/api/sets')).json().sets;
+    expect(set.name).toBe('Persisted');
+    expect((await app.inject(set.audio.url)).rawPayload).toEqual(Buffer.from([1, 2, 3, 4]));
+  });
+
+  it('validates the request body', async () => {
+    await start();
+    const { cue, audio } = await uploadPair();
+
+    expect((await createSet({ cueFileId: cue.id, audioFileId: audio.id })).statusCode).toBe(400);
+    expect((await createSet({ name: '   ', cueFileId: cue.id, audioFileId: audio.id })).statusCode).toBe(400);
+    expect((await createSet({ name: 'x', cueFileId: 'nope', audioFileId: audio.id })).statusCode).toBe(400);
+  });
+
+  it('requires a cue file and an audio file that exist', async () => {
+    await start();
+    const { cue, audio } = await uploadPair();
+    const missing = '00000000-0000-4000-8000-000000000000';
+
+    expect((await createSet({ name: 'x', cueFileId: audio.id, audioFileId: cue.id })).statusCode).toBe(400);
+    expect((await createSet({ name: 'x', cueFileId: missing, audioFileId: audio.id })).statusCode).toBe(400);
+  });
+
+  it('does not let two sets share files, or let a set file be deleted on its own', async () => {
+    await start();
+    const { cue, audio } = await uploadPair();
+    expect((await createSet({ name: 'one', cueFileId: cue.id, audioFileId: audio.id })).statusCode).toBe(201);
+
+    expect((await createSet({ name: 'two', cueFileId: cue.id, audioFileId: audio.id })).statusCode).toBe(409);
+    expect((await app.inject({ method: 'DELETE', url: audio.url })).statusCode).toBe(409);
+    expect((await app.inject(audio.url)).statusCode).toBe(200);
+  });
+
+  it('returns 404 when deleting an unknown set', async () => {
+    await start();
+    expect((await app.inject({ method: 'DELETE', url: '/api/sets/not-a-uuid' })).statusCode).toBe(404);
+    expect(
+      (await app.inject({ method: 'DELETE', url: '/api/sets/00000000-0000-4000-8000-000000000000' })).statusCode,
+    ).toBe(404);
+  });
+
+  it('purges stale uploads that never joined a set, and keeps saved ones', async () => {
+    await start();
+    const kept = await uploadPair();
+    await createSet({ name: 'Kept', cueFileId: kept.cue.id, audioFileId: kept.audio.id });
+    const stale = await upload(CUE_CONTENT, 'stale.cue');
+    const fresh = await upload(CUE_CONTENT, 'fresh.cue');
+    await app.close();
+
+    const database = openDatabase(path.join(dataDir, 'djhelper.sqlite'));
+    database.prepare("UPDATE files SET created_at = '2000-01-01T00:00:00.000Z'").run();
+    database.prepare('UPDATE files SET created_at = ? WHERE id = ?').run(new Date().toISOString(), fresh.id);
+    database.close();
+
+    await start();
+    expect((await app.inject(stale.url)).statusCode).toBe(404);
+    expect((await app.inject(fresh.url)).statusCode).toBe(200);
+    expect((await app.inject(kept.audio.url)).statusCode).toBe(200);
+    expect(readdirSync(path.join(dataDir, 'uploads')).sort()).toEqual(
+      [kept.cue.id, kept.audio.id, fresh.id].sort(),
+    );
   });
 });
 

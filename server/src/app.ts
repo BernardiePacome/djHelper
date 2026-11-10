@@ -7,12 +7,14 @@ import multipart from '@fastify/multipart';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import type { Config } from './config.ts';
-import { createFileStore, openDatabase } from './db.ts';
-import type { StoredFile } from './db.ts';
+import { createFileStore, createSetStore, openDatabase } from './db.ts';
+import type { StoredFile, StoredSet } from './db.ts';
 import { classifyFile, sanitizeFileName } from './file-types.ts';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const DATABASE_FILE_NAME = 'djhelper.sqlite';
+// Files uploaded but never attached to a set (e.g. the browser closed mid-save) are purged after this long.
+const UNATTACHED_FILE_TTL_MS = 60 * 60 * 1000;
 
 function sizeOnDisk(filePath: string): number {
   try {
@@ -36,6 +38,11 @@ export async function buildApp(config: Config, options: { logger?: boolean } = {
 
   const database = openDatabase(databasePath);
   const store = createFileStore(database);
+  const sets = createSetStore(database, store);
+
+  for (const id of store.unattachedBefore(new Date(Date.now() - UNATTACHED_FILE_TTL_MS).toISOString())) {
+    store.remove(id);
+  }
 
   // A crash between writing a file and recording it leaves an untracked file behind.
   const knownIds = store.ids();
@@ -66,6 +73,23 @@ export async function buildApp(config: Config, options: { logger?: boolean } = {
   };
 
   const toResponse = (file: StoredFile) => ({ ...file, url: `/api/files/${file.id}` });
+
+  const toSetResponse = (set: StoredSet) => {
+    const cue = store.get(set.cueFileId);
+    const audio = store.get(set.audioFileId);
+    if (!cue || !audio) {
+      return undefined;
+    }
+
+    return {
+      id: set.id,
+      name: set.name,
+      createdAt: set.createdAt,
+      size: cue.size + audio.size,
+      cue: toResponse(cue),
+      audio: toResponse(audio),
+    };
+  };
 
   app.get('/api/health', async () => ({ status: 'ok' }));
 
@@ -163,11 +187,76 @@ export async function buildApp(config: Config, options: { logger?: boolean } = {
 
   app.delete<{ Params: { id: string } }>('/api/files/:id', async (request, reply) => {
     const { id } = request.params;
-    if (!UUID_PATTERN.test(id) || !store.remove(id)) {
+    if (!UUID_PATTERN.test(id) || !store.get(id)) {
       return reply.code(404).send({ error: 'File not found' });
     }
 
+    if (store.isInSet(id)) {
+      return reply.code(409).send({ error: 'File belongs to a saved set; delete the set instead' });
+    }
+
+    store.remove(id);
     await rm(path.join(uploadsDir, id), { force: true });
+    return reply.code(204).send();
+  });
+
+  app.get('/api/sets', async () => ({
+    sets: sets.list().flatMap((set) => toSetResponse(set) ?? []),
+  }));
+
+  app.post<{ Body: { name: string; cueFileId: string; audioFileId: string } }>(
+    '/api/sets',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['name', 'cueFileId', 'audioFileId'],
+          additionalProperties: false,
+          properties: {
+            name: { type: 'string', minLength: 1, maxLength: 200 },
+            cueFileId: { type: 'string', pattern: UUID_PATTERN.source },
+            audioFileId: { type: 'string', pattern: UUID_PATTERN.source },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const name = request.body.name.trim();
+      const cue = store.get(request.body.cueFileId);
+      const audio = store.get(request.body.audioFileId);
+
+      if (!name) {
+        return reply.code(400).send({ error: 'Set name is required' });
+      }
+      if (cue?.kind !== 'cue' || audio?.kind !== 'audio') {
+        return reply.code(400).send({ error: 'A set needs one uploaded cue file and one uploaded audio file' });
+      }
+      if (store.isInSet(cue.id) || store.isInSet(audio.id)) {
+        return reply.code(409).send({ error: 'These files already belong to a saved set' });
+      }
+
+      const set: StoredSet = {
+        id: randomUUID(),
+        name,
+        cueFileId: cue.id,
+        audioFileId: audio.id,
+        createdAt: new Date().toISOString(),
+      };
+      sets.insert(set);
+      return reply.code(201).send(toSetResponse(set));
+    },
+  );
+
+  app.delete<{ Params: { id: string } }>('/api/sets/:id', async (request, reply) => {
+    const set = UUID_PATTERN.test(request.params.id) ? sets.remove(request.params.id) : undefined;
+    if (!set) {
+      return reply.code(404).send({ error: 'Set not found' });
+    }
+
+    await Promise.all([
+      rm(path.join(uploadsDir, set.cueFileId), { force: true }),
+      rm(path.join(uploadsDir, set.audioFileId), { force: true }),
+    ]);
     return reply.code(204).send();
   });
 
