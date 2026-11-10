@@ -94,7 +94,7 @@
       @for (tooltip of activeTooltipMarkers(); track tooltip.position) {
         <div
           [class.track-tooltip-bottom]="tooltip.position === 'bottom'"
-          [style.left.%]="(tooltip.marker.x / 1200) * 100"
+          [style.--marker-x]="(tooltip.marker.x / 1200) * 100 + '%'"
           class="track-tooltip"
           role="tooltip"
         >

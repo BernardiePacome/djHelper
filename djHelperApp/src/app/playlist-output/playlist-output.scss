@@ -76,3 +76,24 @@ textarea {
   line-height: 1.5;
 }
 
+@media (max-width: 600px) {
+  .output-panel {
+    padding: 14px;
+  }
+
+  .output-actions {
+    width: 100%;
+  }
+
+  .output-actions > button {
+    flex: 1 1 0;
+    min-height: 44px;
+    padding-inline: 0.6rem;
+  }
+
+  // 16px stops iOS Safari from zooming the page when the field is focused.
+  textarea {
+    padding: 12px;
+    font-size: 16px;
+  }
+}

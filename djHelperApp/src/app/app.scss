@@ -4,6 +4,8 @@
 }
 
 .app-header {
+  flex-wrap: wrap;
+  column-gap: 12px;
   justify-content: space-between;
 }
 
@@ -15,6 +17,7 @@
 
 .app-topbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-start;
   gap: 20px;
@@ -65,4 +68,26 @@ h2 {
 .mock-load-button:disabled {
   opacity: 0.65;
   cursor: wait;
+}
+
+@media (max-width: 600px) {
+  .djhelper-page {
+    width: calc(100% - 24px);
+    padding: 24px 0 48px;
+  }
+
+  .app-topbar {
+    gap: 12px;
+  }
+
+  .main-title {
+    font-size: 1.4rem;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+
+  .mock-load-button {
+    width: 100%;
+    min-height: 44px;
+  }
 }

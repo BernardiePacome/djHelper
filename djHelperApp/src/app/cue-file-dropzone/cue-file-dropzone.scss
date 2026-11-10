@@ -10,6 +10,8 @@
   place-content: center;
   justify-items: center;
   min-height: 180px;
+  padding: 24px 20px;
+  text-align: center;
   border: 2px dashed rgba(130, 160, 255, 0.75);
   border-radius: 20px;
   background: rgba(16, 23, 44, 0.92);
@@ -38,6 +40,11 @@
 .dropzone-subtitle {
   margin: 8px 0 0;
   color: #b9c5e7;
+}
+
+.file-meta span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .file-meta {
@@ -74,4 +81,19 @@
   background: rgba(255, 85, 85, 0.1);
   border: 1px solid rgba(255, 85, 85, 0.35);
   color: #ff9c9c;
+}
+
+@media (max-width: 600px) {
+  .dropzone {
+    min-height: 140px;
+    padding: 20px 16px;
+  }
+
+  .dropzone-title {
+    font-size: 1rem;
+  }
+
+  .secondary-button {
+    min-height: 44px;
+  }
 }
