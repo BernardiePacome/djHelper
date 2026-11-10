@@ -1,0 +1,25 @@
+name: djhelper
+
+services:
+  api:
+    build: ./server
+    restart: unless-stopped
+    environment:
+      DATA_DIR: /data
+      # Docker named volumes have no native size limit, so the API enforces 2 GiB itself.
+      DATA_QUOTA_BYTES: '2147483648'
+    volumes:
+      - djhelper-data:/data
+
+  web:
+    build: ./djHelperApp
+    restart: unless-stopped
+    # Port 8080 is avoided: the Angular app treats it as the mock server.
+    ports:
+      - '${WEB_PORT:-8081}:80'
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  djhelper-data:

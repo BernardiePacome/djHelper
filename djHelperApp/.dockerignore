@@ -1,0 +1,8 @@
+node_modules
+dist
+.angular
+.vscode
+mocks
+.DS_Store
+Dockerfile
+.dockerignore
