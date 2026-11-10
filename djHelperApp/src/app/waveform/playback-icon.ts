@@ -23,6 +23,12 @@ type PlaybackIconName = 'play' | 'pause' | 'previous' | 'next';
         width: 20px;
         height: 20px;
       }
+
+      @media (max-width: 600px) {
+        span {
+          display: none;
+        }
+      }
     `
   ],
 })

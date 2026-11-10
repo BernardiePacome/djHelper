@@ -46,6 +46,7 @@ h2 {
 
 .player-controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
 }
@@ -130,8 +131,13 @@ h2 {
 }
 
 .track-tooltip {
+  --tooltip-max-width: min(360px, calc(100% - 16px));
   position: absolute;
   top: 8px;
+  width: max-content;
+  max-width: var(--tooltip-max-width);
+  // Centre on the marker, but never closer to either edge than half the tooltip's maximum width.
+  left: clamp(calc(var(--tooltip-max-width) / 2), var(--marker-x), calc(100% - var(--tooltip-max-width) / 2));
   padding: 6px 10px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 6px;
@@ -157,4 +163,38 @@ h2 {
 
 .waveform-error {
   color: #ff9c9c;
+}
+
+@media (max-width: 600px) {
+  .waveform-panel {
+    padding: 14px;
+  }
+
+  .audio-file-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .player-controls {
+    gap: 8px;
+  }
+
+  .playback-toggle {
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .playback-time {
+    margin-left: auto;
+  }
+
+  .waveform {
+    height: 120px;
+  }
+
+  .track-tooltip {
+    --tooltip-max-width: min(220px, calc(100% - 16px));
+  }
 }

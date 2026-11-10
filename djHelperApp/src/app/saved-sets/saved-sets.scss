@@ -33,6 +33,7 @@ h2 {
 
 .set-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -53,6 +54,7 @@ h2 {
 
 .set-info {
   display: flex;
+  flex: 1 1 200px;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
@@ -106,8 +108,19 @@ h2 {
   color: #ff9c9c;
 }
 
+.secondary-button,
+.danger-button {
+  transition: opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
 button:hover:not(:disabled) {
   opacity: 0.92;
+}
+
+.delete-button:hover:not(:disabled) {
+  border-color: rgba(255, 85, 85, 0.35);
+  background: rgba(255, 85, 85, 0.15);
+  color: #ff9c9c;
 }
 
 button:disabled {
@@ -122,4 +135,19 @@ button:disabled {
   background: rgba(255, 85, 85, 0.1);
   border: 1px solid rgba(255, 85, 85, 0.35);
   color: #ff9c9c;
+}
+
+@media (max-width: 600px) {
+  .saved-sets {
+    padding: 14px;
+  }
+
+  .set-actions {
+    width: 100%;
+  }
+
+  .set-actions > button {
+    flex: 1 1 0;
+    min-height: 44px;
+  }
 }

@@ -23,3 +23,17 @@
 .track-time {
   color: #8aa4ff;
 }
+
+@media (max-width: 600px) {
+  .track-row {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 0.6rem 0.7rem;
+    font-size: 0.95rem;
+  }
+
+  .track-row > span:nth-child(2) {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}

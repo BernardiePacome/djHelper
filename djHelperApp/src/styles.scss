@@ -12,6 +12,8 @@
 // Without this the browser keeps the Saved Sets panel in view while a loaded set renders above it.
 html {
   overflow-anchor: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 html,
@@ -32,6 +34,10 @@ button,
 input,
 textarea {
   font: inherit;
+}
+
+button {
+  touch-action: manipulation;
 }
 
 section {
