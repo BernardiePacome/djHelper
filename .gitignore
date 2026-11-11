@@ -130,4 +130,4 @@ dist
 .pnp.*
 server/data/djhelper.sqlite-*
 server/data/uploads/*
->>>>>>> 711a40e (ignore program files)
+server/data/djhelper.sqlite-shm
