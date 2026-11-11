@@ -84,7 +84,22 @@
         preserveAspectRatio="none"
         role="group"
       >
-        <path [attr.d]="waveformPath()" />
+        <defs>
+          <clipPath [attr.id]="clipId + '-played'">
+            <rect x="0" y="0" [attr.width]="playbackPosition()" height="100" />
+          </clipPath>
+          <clipPath [attr.id]="clipId + '-unplayed'">
+            <rect [attr.x]="playbackPosition()" y="0" [attr.width]="1200 - playbackPosition()" height="100" />
+          </clipPath>
+        </defs>
+        <g class="bars bars-unplayed" [attr.clip-path]="'url(#' + clipId + '-unplayed)'">
+          <path class="bars-main" [attr.d]="mainBarsPath()" />
+          <path class="bars-reflection" [attr.d]="reflectionBarsPath()" />
+        </g>
+        <g class="bars bars-played" [attr.clip-path]="'url(#' + clipId + '-played)'">
+          <path class="bars-main" [attr.d]="mainBarsPath()" />
+          <path class="bars-reflection" [attr.d]="reflectionBarsPath()" />
+        </g>
         @for (marker of visibleTrackMarkers(); track marker.index) {
           <g
             (mouseenter)="showMarkerTooltip(marker)"
