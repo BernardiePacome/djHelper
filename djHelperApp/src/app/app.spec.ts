@@ -146,6 +146,18 @@ describe('App saved sets', () => {
     expect(app.isCurrentSetSaved()).toBe(true);
   });
 
+  it('keeps the current audio file while a cue file is loading', async () => {
+    const app = createApp();
+    const audio = new File(['audio'], 'mix.mp3');
+    app.onFilesSelected([audio]);
+
+    app.onFilesSelected([new File([cueText], 'other.cue')]);
+    expect(app.audioFile()).toBe(audio);
+
+    await vi.waitFor(() => expect(app.playlist()).toHaveLength(1));
+    expect(app.audioFile()).toBe(audio);
+  });
+
   it('no longer shows a loaded set as saved once it is deleted', async () => {
     sets.set([savedSet]);
     const app = createApp();
