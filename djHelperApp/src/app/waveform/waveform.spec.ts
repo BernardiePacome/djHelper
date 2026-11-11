@@ -81,6 +81,76 @@ describe('Waveform', () => {
     return audio;
   }
 
+  describe('save button', () => {
+    const render = async (inputs: Record<string, boolean>) => {
+      const fixture = await createWaveform();
+      for (const [name, value] of Object.entries(inputs)) {
+        fixture.componentRef.setInput(name, value);
+      }
+      fixture.detectChanges();
+      const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.player-controls button'));
+      const saveButton = buttons.find((element) => /Save|Saving|Saved/.test(element.textContent ?? ''))!;
+      return { fixture, buttons, saveButton: saveButton as HTMLButtonElement };
+    };
+
+    it('sits right after the next transition button and is disabled until the set can be saved', async () => {
+      const { buttons, saveButton } = await render({ canSave: false });
+      expect(buttons.indexOf(saveButton)).toBe(
+        buttons.findIndex((button) => button.getAttribute('aria-label') === 'Next Transition') + 1
+      );
+      expect(saveButton.disabled).toBe(true);
+      expect(saveButton.textContent).toContain('Save Set');
+    });
+
+    it('emits saveRequested when enabled', async () => {
+      const { fixture, saveButton } = await render({ canSave: true });
+      const requested = vi.fn();
+      fixture.componentInstance.saveRequested.subscribe(requested);
+
+      saveButton.click();
+
+      expect(saveButton.disabled).toBe(false);
+      expect(requested).toHaveBeenCalledOnce();
+    });
+
+    it('shows progress and the saved state without allowing another save', async () => {
+      const saving = (await render({ canSave: true, isSaving: true })).saveButton;
+      expect(saving.textContent).toContain('Saving');
+      expect(saving.disabled).toBe(true);
+
+      const saved = (await render({ canSave: true, isSaved: true })).saveButton;
+      expect(saved.textContent).toContain('Saved');
+      expect(saved.disabled).toBe(true);
+    });
+  });
+
+  it('keeps the current player while a new file is being analyzed', async () => {
+    const fixture = await createWaveform();
+    fixture.detectChanges();
+    const player = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    const firstSource = player.getAttribute('src');
+
+    let finishDecoding: () => void = () => undefined;
+    const nextFile = new File(['next audio'], 'next.wav');
+    Object.defineProperty(nextFile, 'arrayBuffer', {
+      value: vi.fn(() => new Promise<ArrayBuffer>((resolve) => (finishDecoding = () => resolve(new ArrayBuffer(4))))),
+    });
+    fixture.componentRef.setInput('file', nextFile);
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.isLoading()).toBe(true);
+    expect(fixture.nativeElement.querySelector('audio')).toBe(player);
+    expect(player.getAttribute('src')).toBe(firstSource);
+
+    finishDecoding();
+    await vi.waitFor(() => expect(fixture.componentInstance.isLoading()).toBe(false));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.activeFile()).toBe(nextFile);
+  });
+
   it('updates the current time from the audio player', async () => {
     const component = (await createWaveform()).componentInstance;
 

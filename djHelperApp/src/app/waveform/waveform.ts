@@ -1,4 +1,4 @@
-import { Component, computed, effect, input, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import type { CueMarker } from '../set-track';
 import { PlaybackIcon } from './playback-icon';
 import { TrackTooltipText } from './track-tooltip-text';
@@ -17,11 +17,10 @@ interface PositionedCueMarker extends CueMarker {
 })
 export class Waveform {
   // Constructor
-    public constructor() {
-    effect((onCleanup) => {
-      const source = URL.createObjectURL(this.file());
-      this.audioSource.set(source);
-      onCleanup(() => URL.revokeObjectURL(source));
+  public constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      this.stopPlaybackFrame();
+      this.revokeAudioSource();
     });
 
     effect(() => {
@@ -33,22 +32,30 @@ export class Waveform {
     // Inputs 
   public readonly file = input.required<File>();
   public readonly trackMarkers = input<CueMarker[]>([]);
+  public readonly canSave = input(false);
+  public readonly isSaving = input(false);
+  public readonly isSaved = input(false);
+  public readonly saveRequested = output<void>();
   // Signals
   private readonly hoveredMarker = signal<PositionedCueMarker | null>(null);
   private loadId = 0;
+  private currentAudioUrl: string | null = null;
+  public readonly activeFile = signal<File | null>(null);
   private playbackFrameId: number | null = null;
   private readonly pinnedMarker = signal<PositionedCueMarker | null>(null);
   
-   private async loadWaveform(file: File): Promise<void> {
+  // The current player keeps running while a new file is analyzed; it is only swapped once decoding succeeds.
+  private async loadWaveform(file: File): Promise<void> {
     const loadId = ++this.loadId;
-    this.stopPlaybackFrame();
-    this.isLoading.set(true);
-    this.isPlaying.set(false);
-    this.currentTime.set(0);
-    this.playbackError.set('');
     this.errorMessage.set('');
-    this.duration.set(0);
-    this.peaks.set([]);
+
+    const activeFile = this.activeFile();
+    if (activeFile && this.isSameFile(activeFile, file)) {
+      this.isLoading.set(false);
+      return;
+    }
+
+    this.isLoading.set(true);
 
     let audioContext: AudioContext | undefined;
 
@@ -73,6 +80,14 @@ export class Waveform {
         waveformPeaks.push(peak);
       }
 
+      this.stopPlaybackFrame();
+      this.revokeAudioSource();
+      this.currentAudioUrl = URL.createObjectURL(file);
+      this.audioSource.set(this.currentAudioUrl);
+      this.activeFile.set(file);
+      this.isPlaying.set(false);
+      this.currentTime.set(0);
+      this.playbackError.set('');
       this.peaks.set(waveformPeaks);
       this.duration.set(audioBuffer.duration);
     } catch {
@@ -86,6 +101,20 @@ export class Waveform {
       if (loadId === this.loadId) {
         this.isLoading.set(false);
       }
+    }
+  }
+
+  private isSameFile(first: File, second: File): boolean {
+    return (
+      first === second ||
+      (first.name === second.name && first.size === second.size && first.lastModified === second.lastModified)
+    );
+  }
+
+  private revokeAudioSource(): void {
+    if (this.currentAudioUrl) {
+      URL.revokeObjectURL(this.currentAudioUrl);
+      this.currentAudioUrl = null;
     }
   }
 

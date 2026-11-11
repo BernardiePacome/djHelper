@@ -25,7 +25,14 @@
     />
 
     @if (audioFile(); as selectedAudio) {
-      <app-waveform [file]="selectedAudio" [trackMarkers]="trackMarkers()" />
+      <app-waveform
+        [file]="selectedAudio"
+        [trackMarkers]="trackMarkers()"
+        [canSave]="canSaveSet()"
+        [isSaving]="isSavingSet()"
+        [isSaved]="isCurrentSetSaved()"
+        (saveRequested)="saveSet()"
+      />
     }
   </section>
 
@@ -36,13 +43,7 @@
   <section>
     @if (playlist().length > 0) {
       <app-track-list [tracks]="playlist()" />
-      <app-playlist-output
-        [tracks]="playlist()"
-        [canSave]="canSaveSet()"
-        [isSaving]="isSavingSet()"
-        [isSaved]="isCurrentSetSaved()"
-        (saveRequested)="saveSet()"
-      />
+      <app-playlist-output [tracks]="playlist()" />
     }
   </section>
 

@@ -1,19 +1,25 @@
 <section class="output-panel">
   <div class="output-header">
-    <h2>Playlist</h2>
-    <div class="output-actions">
-      <button type="button" class="primary-button" (click)="copyPlaylist()">Copy to Clipboard</button>
+    <h2>
       <button
         type="button"
-        class="secondary-button"
-        [disabled]="!canSave() || isSaving() || isSaved()"
-        [title]="canSave() || isSaved() ? '' : 'Load a cue file together with its audio file to save the set'"
-        (click)="saveRequested.emit()"
+        class="collapse-toggle"
+        [attr.aria-expanded]="isExpanded()"
+        aria-controls="playlist-text"
+        (click)="toggleExpanded()"
       >
-        {{ isSaving() ? 'Saving…' : isSaved() ? 'Saved ✓' : 'Save Set' }}
+        <svg class="collapse-arrow" [class.collapsed]="!isExpanded()" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+        Playlist text
       </button>
+    </h2>
+    <div class="output-actions">
+      <button type="button" class="primary-button" (click)="copyPlaylist()">Copy to Clipboard</button>
     </div>
   </div>
 
-  <textarea rows="18" readonly [value]="formattedText()"></textarea>
+  @if (isExpanded()) {
+    <textarea id="playlist-text" rows="18" readonly [value]="formattedText()"></textarea>
+  }
 </section>

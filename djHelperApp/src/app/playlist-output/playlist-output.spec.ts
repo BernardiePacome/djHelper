@@ -61,45 +61,25 @@ describe('PlaylistOutput', () => {
 
     expect(writeText).not.toHaveBeenCalled();
   });
-  describe('save button', () => {
-    const render = (inputs: Record<string, boolean>) => {
-      const fixture = TestBed.createComponent(PlaylistOutput);
-      fixture.componentRef.setInput('tracks', tracks);
-      for (const [name, value] of Object.entries(inputs)) {
-        fixture.componentRef.setInput(name, value);
-      }
-      fixture.detectChanges();
-      const saveButton = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find(
-        (element) => /Save|Saving|Saved/.test(element.textContent ?? ''),
-      )!;
-      return { fixture, saveButton };
-    };
 
-    it('is disabled until the set can be saved', () => {
-      const { saveButton } = render({ canSave: false });
-      expect(saveButton.disabled).toBe(true);
-      expect(saveButton.textContent).toContain('Save Set');
-    });
+  it('collapses and expands the playlist text from the titled toggle', () => {
+    const fixture = TestBed.createComponent(PlaylistOutput);
+    fixture.componentRef.setInput('tracks', tracks);
+    fixture.detectChanges();
+    const element = fixture.nativeElement as HTMLElement;
+    const toggle = element.querySelector<HTMLButtonElement>('.collapse-toggle')!;
 
-    it('emits saveRequested when enabled', () => {
-      const { fixture, saveButton } = render({ canSave: true });
-      const requested = vi.fn();
-      fixture.componentInstance.saveRequested.subscribe(requested);
+    expect(toggle.textContent).toContain('Playlist text');
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(element.querySelector('textarea')).not.toBeNull();
 
-      saveButton.click();
+    toggle.click();
+    fixture.detectChanges();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(element.querySelector('textarea')).toBeNull();
 
-      expect(saveButton.disabled).toBe(false);
-      expect(requested).toHaveBeenCalledOnce();
-    });
-
-    it('shows progress and the saved state without allowing another save', () => {
-      const saving = render({ canSave: true, isSaving: true }).saveButton;
-      expect(saving.textContent).toContain('Saving');
-      expect(saving.disabled).toBe(true);
-
-      const saved = render({ canSave: true, isSaved: true }).saveButton;
-      expect(saved.textContent).toContain('Saved');
-      expect(saved.disabled).toBe(true);
-    });
+    toggle.click();
+    fixture.detectChanges();
+    expect(element.querySelector('textarea')).not.toBeNull();
   });
 });

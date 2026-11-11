@@ -61,6 +61,14 @@ function isStorageUsage(value: unknown): value is StorageUsage {
   );
 }
 
+function fileExtension(fileName: string): string {
+  return /\.[^./\\]+$/.exec(fileName)?.[0].toLowerCase() ?? '';
+}
+
+function renamedFile(file: File, name: string): File {
+  return file.name === name ? file : new File([file], name, { type: file.type, lastModified: file.lastModified });
+}
+
 async function readError(response: Response): Promise<string> {
   try {
     const body: unknown = await response.json();
@@ -117,9 +125,10 @@ export class SavedSetsService {
     const uploadedIds: string[] = [];
 
     try {
-      const cue = await this.upload(cueFile);
+      // Both files share the set name; only their extensions differ (.cue and the audio's own format).
+      const cue = await this.upload(renamedFile(cueFile, `${name}.cue`));
       uploadedIds.push(cue.id);
-      const audio = await this.upload(audioFile);
+      const audio = await this.upload(renamedFile(audioFile, `${name}${fileExtension(audioFile.name)}`));
       uploadedIds.push(audio.id);
 
       const body = await requestJson('/api/sets', {

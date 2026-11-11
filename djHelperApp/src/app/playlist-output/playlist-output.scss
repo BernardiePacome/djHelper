@@ -21,6 +21,39 @@ h2 {
   font-size: 1.25rem;
 }
 
+.collapse-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid #a9bcff;
+    outline-offset: 4px;
+    border-radius: 6px;
+  }
+}
+
+.collapse-arrow {
+  width: 1.25em;
+  height: 1.25em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s ease;
+
+  &.collapsed {
+    transform: rotate(180deg);
+  }
+}
+
 .output-actions {
   display: flex;
   gap: 8px;
