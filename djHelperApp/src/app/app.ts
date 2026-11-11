@@ -72,7 +72,8 @@ export class App {
   );
 
   public onFilesSelected(files: File[]): void {
-    this.clearPlaylist();
+    // Keep the current audio file so playback is not interrupted while tracks load.
+    this.resetTracks();
     const cueFile = files.find((file) => /\.(cue|txt)$/i.test(file.name));
     const audioFiles = files.filter((file) =>
       /\.(wav|mp3|aiff|aif|flac|ogg|m4a|aac|opus|wma)$/i.test(file.name)
@@ -105,10 +106,14 @@ export class App {
   }
 
   public clearPlaylist(): void {
+    this.resetTracks();
+    this.audioFile.set(null);
+  }
+
+  private resetTracks(): void {
     this.playlist.set([]);
     this.fileName.set('');
     this.errorMessage.set('');
-    this.audioFile.set(null);
     this.trackMarkers.set([]);
     this.cueFile.set(null);
     this.savedSetId.set(null);
