@@ -29,6 +29,9 @@ export class Waveform {
   }
   // Constants
   private readonly tooltipSeparationThreshold = 36;
+  private readonly barCount = 400;
+  private static nextInstanceId = 0;
+  protected readonly clipId = `waveform-clip-${Waveform.nextInstanceId++}`;
     // Inputs 
   public readonly file = input.required<File>();
   public readonly trackMarkers = input<CueMarker[]>([]);
@@ -68,17 +71,21 @@ export class Waveform {
       }
 
       const samples = audioBuffer.getChannelData(0);
-      const bucketSize = Math.max(1, Math.ceil(samples.length / 1200));
-      const waveformPeaks: number[] = [];
+      const bucketSize = Math.max(1, Math.ceil(samples.length / this.barCount));
+      const levels: number[] = [];
 
+      // RMS per bucket keeps the loudness variation that a plain peak flattens out on loud masters.
       for (let start = 0; start < samples.length; start += bucketSize) {
-        let peak = 0;
+        let sumOfSquares = 0;
         const end = Math.min(start + bucketSize, samples.length);
         for (let index = start; index < end; index++) {
-          peak = Math.max(peak, Math.abs(samples[index]));
+          sumOfSquares += samples[index] * samples[index];
         }
-        waveformPeaks.push(peak);
+        levels.push(Math.sqrt(sumOfSquares / (end - start)));
       }
+
+      const loudest = Math.max(...levels, Number.EPSILON);
+      const waveformPeaks = levels.map((level) => level / loudest);
 
       this.stopPlaybackFrame();
       this.revokeAudioSource();
@@ -172,22 +179,26 @@ export class Waveform {
     return this.formatTime(this.duration());
   });
 
-  public readonly waveformPath = computed(() => {
+  // The viewBox is 1200x100: bars rise from a baseline at y=70 and a shorter, dimmer reflection hangs below it.
+  public readonly mainBarsPath = computed(() => this.barsPath(-66, 70));
+  public readonly reflectionBarsPath = computed(() => this.barsPath(28, 71));
+
+  private barsPath(maxHeight: number, baseline: number): string {
     const peaks = this.peaks();
     if (peaks.length === 0) {
       return '';
     }
     const columnWidth = 1200 / peaks.length;
+    const width = Math.max(0.5, columnWidth * 0.66);
+    const rises = maxHeight < 0;
     return peaks
       .map((peak, index) => {
-        const x = index * columnWidth;
-        const y = 50 - peak * 46;
-        const height = Math.max(1, peak * 92);
-        const width = Math.max(0.5, columnWidth * 0.72);
-        return `M${x} ${y}v${height}h${width}v-${height}z`;
+        const height = Math.max(1, peak * Math.abs(maxHeight));
+        const y = rises ? baseline - height : baseline;
+        return `M${index * columnWidth} ${y}h${width}v${height}h-${width}z`;
       })
       .join('');
-  });
+  }
 
   public readonly visibleTrackMarkers = computed(() =>
     this.duration() > 0
