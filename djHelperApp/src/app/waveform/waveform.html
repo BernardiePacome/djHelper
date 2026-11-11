@@ -1,14 +1,16 @@
 <section class="waveform-panel" aria-label="Audio waveform">
   <div class="waveform-header">
     <h2>Waveform</h2>
-    <span class="audio-file-name">{{ file().name }}</span>
+    <span class="audio-file-name">{{ activeFile()?.name ?? file().name }}</span>
   </div>
 
   @if (isLoading()) {
-    <p class="waveform-message" role="status">Analyzing audio…</p>
-  } @else if (errorMessage()) {
+    <p class="waveform-message" role="status">Analyzing {{ file().name }}…</p>
+  }
+  @if (errorMessage()) {
     <p class="waveform-error" role="alert">{{ errorMessage() }}</p>
-  } @else {
+  }
+  @if (audioSource()) {
     <audio
       #audioPlayer
       [src]="audioSource()"
@@ -50,6 +52,16 @@
         aria-label="Next Transition"
       >
         <app-playback-icon [name]="'next'" />
+      </button>
+
+      <button
+        (click)="saveRequested.emit()"
+        [disabled]="!canSave() || isSaving() || isSaved()"
+        [title]="canSave() || isSaved() ? '' : 'Load a cue file together with its audio file to save the set'"
+        type="button"
+        class="playback-button save-button"
+      >
+        {{ isSaving() ? 'Saving…' : isSaved() ? 'Saved ✓' : 'Save Set' }}
       </button>
       <span class="playback-time" aria-live="off">{{ formattedCurrentTime() }} / {{ formattedDuration() }}</span>
     </div>

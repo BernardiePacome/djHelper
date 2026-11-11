@@ -146,6 +146,16 @@ describe('App saved sets', () => {
     expect(app.isCurrentSetSaved()).toBe(true);
   });
 
+  it('pairs a renamed saved audio file with its cue even if the cue references another name', async () => {
+    const app = createApp();
+    const audio = new File(['audio'], 'set name.mp3');
+
+    app.onSavedSetLoaded({ set: savedSet, files: [new File([cueText], 'set name.cue'), audio] });
+    await vi.waitFor(() => expect(app.playlist()).toHaveLength(1));
+
+    expect(app.audioFile()).toBe(audio);
+  });
+
   it('keeps the current audio file while a cue file is loading', async () => {
     const app = createApp();
     const audio = new File(['audio'], 'mix.mp3');

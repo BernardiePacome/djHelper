@@ -78,6 +78,21 @@ describe('SavedSetsService', () => {
     expect(JSON.parse(setCall![1].body)).toEqual({ name: 'mix', cueFileId: 'c1', audioFileId: 'a1' });
   });
 
+  it('saves the cue and audio under the set name, keeping the audio format', async () => {
+    const uploadedNames: string[] = [];
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (url === '/api/files') {
+        uploadedNames.push(((init!.body as FormData).get('file') as File).name);
+        return uploadResponse(init!);
+      }
+      return url === '/api/sets' ? json(savedSet, 201) : json(usage);
+    });
+
+    await service.save('mix', new File(['cue'], 'Other name.TXT'), new File(['audio'], 'Different Track.WAV'));
+
+    expect(uploadedNames).toEqual(['mix.cue', 'mix.wav']);
+  });
+
   it('deletes already uploaded files when saving fails', async () => {
     fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
       if (url === '/api/files' && init?.method === 'POST') {
