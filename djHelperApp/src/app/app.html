@@ -16,21 +16,21 @@
       </div>
     </header>
     <p>for rekordBox</p>
-    @if (!isMockMode) {
-      <app-cue-file-dropzone
-        [fileName]="fileName()"
-        [audioFileName]="audioFile()?.name ?? ''"
-        [errorMessage]="errorMessage()"
-        (filesSelected)="onFilesSelected($event)"
-        (clearRequested)="clearPlaylist()"
-      />
-    } @else if (errorMessage()) {
-      <p class="error-message" role="alert">{{ errorMessage() }}</p>
-    }
+    <app-cue-file-dropzone
+      [fileName]="fileName()"
+      [audioFileName]="audioFile()?.name ?? ''"
+      [errorMessage]="errorMessage()"
+      (filesSelected)="onFilesSelected($event)"
+      (clearRequested)="clearPlaylist()"
+    />
 
     @if (audioFile(); as selectedAudio) {
       <app-waveform [file]="selectedAudio" [trackMarkers]="trackMarkers()" />
     }
+  </section>
+
+  <section>
+    <app-search-bar (setLoaded)="onSavedSetLoaded($event)" />
   </section>
 
   <section>
