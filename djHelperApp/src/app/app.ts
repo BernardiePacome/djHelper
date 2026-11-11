@@ -1,9 +1,11 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { parseCueTracks } from './cue-parser';
 import { CueFileDropzone } from './cue-file-dropzone/cue-file-dropzone';
 import { PlaylistOutput } from './playlist-output/playlist-output';
 import { SavedSets } from './saved-sets/saved-sets';
 import type { LoadedSet } from './saved-sets/saved-sets';
 import { SavedSetsService } from './saved-sets/saved-sets.service';
+import { SearchBar } from './search-bar/search-bar';
 import { TrackList } from './track-list/track-list';
 import { Waveform } from './waveform/waveform';
 import type { CueMarker, SetTrack } from './set-track';
@@ -40,7 +42,7 @@ function isMockFileManifest(value: unknown): value is MockFileManifest {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CueFileDropzone, PlaylistOutput, SavedSets, TrackList, Waveform],
+  imports: [CueFileDropzone, PlaylistOutput, SavedSets, SearchBar, TrackList, Waveform],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
@@ -204,47 +206,7 @@ export class App {
   }
 
   private processCueFile(fileName: string, cueText: string): void {
-    const tracks: SetTrack[] = [];
-    let currentTrack: Partial<SetTrack> | undefined;
-
-    for (const line of cueText.split(/\r?\n/)) {
-      const trackStart = line.match(/^\s*TRACK\s+\d+\s+/i);
-      if (trackStart) {
-        if (currentTrack?.title && currentTrack.playTime) {
-          tracks.push({
-            title: currentTrack.title,
-            artist: currentTrack.artist ?? 'Unknown',
-            playTime: currentTrack.playTime
-          });
-        }
-        currentTrack = {};
-        continue;
-      }
-
-      if (!currentTrack) {
-        continue;
-      }
-
-      const title = line.match(/^\s*TITLE\s+"(.*)"/i);
-      const artist = line.match(/^\s*PERFORMER\s+"(.*)"/i);
-      const index = line.match(/^\s*INDEX\s+01\s+(\S+)/i);
-
-      if (title) {
-        currentTrack.title = title[1];
-      } else if (artist) {
-        currentTrack.artist = artist[1];
-      } else if (index) {
-        currentTrack.playTime = index[1];
-      }
-    }
-
-    if (currentTrack?.title && currentTrack.playTime) {
-      tracks.push({
-        title: currentTrack.title,
-        artist: currentTrack.artist ?? 'Unknown',
-        playTime: currentTrack.playTime
-      });
-    }
+    const tracks = parseCueTracks(cueText);
 
     if (tracks.length === 0) {
       this.errorMessage.set('Please check the cue file for missing field');

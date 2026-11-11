@@ -31,7 +31,7 @@ Start the app with the cue and audio fixtures served from `mocks/`:
 npm run mock:server
 ```
 
-Open `http://localhost:8080/`. Port 8080 automatically enables mock mode; the upload dropzone is hidden. Click **Load mock cue and audio** to fetch the fixture manifest and load the `.cue` and `.mp3`. The normal Angular development server continues to use manual file uploads, or mock mode can be enabled there with `?mock=1`.
+Open `http://localhost:8080/`. Port 8080 automatically enables mock mode; the upload dropzone stays available, and **Load mock cue and audio** fetches the fixture manifest and loads the `.cue` and `.mp3`. The normal Angular development server continues to use manual file uploads, or mock mode can be enabled there with `?mock=1`.
 
 Stop the server with `Ctrl+C`. Fixture files can be replaced in `mocks/` without rebuilding.
 

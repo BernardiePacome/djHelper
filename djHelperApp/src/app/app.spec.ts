@@ -23,6 +23,21 @@ describe('App', () => {
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('.main-title')?.textContent).toContain('DJ ToolBox');
   });
+
+  it('keeps the dropzone visible in mock mode so more files can be added', async () => {
+    history.replaceState(null, '', '/?mock=1');
+    try {
+      const fixture = TestBed.createComponent(App);
+      await fixture.whenStable();
+      const compiled = fixture.nativeElement as HTMLElement;
+
+      expect(fixture.componentInstance.isMockMode).toBe(true);
+      expect(compiled.querySelector('.mock-load-button')).toBeTruthy();
+      expect(compiled.querySelector('app-cue-file-dropzone .dropzone')).toBeTruthy();
+    } finally {
+      history.replaceState(null, '', '/');
+    }
+  });
 });
 
 describe('App saved sets', () => {
