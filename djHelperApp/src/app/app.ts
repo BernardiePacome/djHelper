@@ -71,6 +71,10 @@ export class App {
       this.playlist().length > 0 &&
       this.savedSets.status() === 'ready'
   );
+  public readonly savedSetsReady = computed(() => this.savedSets.status() === 'ready');
+  public readonly loadedSetsList = computed(() => 
+    this.savedSets.sets().map(set => set.name)
+  );
 
   public async onFilesSelected(files: File[]): Promise<void> {
     this.isLoadingFiles.set(true);

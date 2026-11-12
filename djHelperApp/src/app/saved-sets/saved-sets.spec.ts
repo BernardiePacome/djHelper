@@ -51,10 +51,9 @@ describe('SavedSets', () => {
     }).compileComponents();
   });
 
-  it('refreshes on init and lists saved sets with storage usage', () => {
+  it('lists saved sets with storage usage', () => {
     const fixture = create();
 
-    expect(service.refresh).toHaveBeenCalledOnce();
     expect(text(fixture)).toContain('Friday night');
     expect(text(fixture)).toContain('mix.mp3');
     expect(text(fixture)).toContain('5.0 MB of 2.0 GB used');

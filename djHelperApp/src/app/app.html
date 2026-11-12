@@ -42,6 +42,14 @@
 
   @if (!isLoadingFiles()) {
     <section>
+      @if (savedSetsReady() && loadedSetsList().length > 0) {
+        <div class="startup-info">
+          <p class="startup-message">{{ loadedSetsList().length }} set(s) already loaded: {{ loadedSetsList().join(', ') }}</p>
+        </div>
+      }
+    </section>
+
+    <section>
       <app-search-bar (setLoaded)="onSavedSetLoaded($event)" />
     </section>
 
