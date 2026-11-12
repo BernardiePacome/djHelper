@@ -38,6 +38,28 @@ describe('App', () => {
       history.replaceState(null, '', '/');
     }
   });
+
+  it('hides other components while cue and audio files are loading', async () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const cueText = 'FILE "mix.mp3" MP3\n  TRACK 01 AUDIO\n    TITLE "Song"\n    PERFORMER "Artist"\n    INDEX 01 00:00:00\n';
+    const files = [new File([cueText], 'mix.cue'), new File(['audio'], 'mix.mp3')];
+
+    const loading = app.onFilesSelected(files);
+    fixture.detectChanges();
+
+    expect(app.isLoadingFiles()).toBe(true);
+    expect(fixture.nativeElement.querySelector('app-search-bar')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-saved-sets')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.loading-message')).toBeTruthy();
+
+    await loading;
+    fixture.detectChanges();
+
+    expect(app.isLoadingFiles()).toBe(false);
+    expect(fixture.nativeElement.querySelector('app-search-bar')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-saved-sets')).toBeTruthy();
+  });
 });
 
 describe('App saved sets', () => {

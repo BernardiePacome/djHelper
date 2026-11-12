@@ -56,6 +56,7 @@ export class App {
   public readonly audioFile = signal<File | null>(null);
   public readonly trackMarkers = signal<CueMarker[]>([]);
   public readonly isLoadingMockFiles = signal(false);
+  public readonly isLoadingFiles = signal(false);
   public readonly cueFile = signal<File | null>(null);
   public readonly isSavingSet = signal(false);
   public readonly savedSetId = signal<string | null>(null);
@@ -71,7 +72,8 @@ export class App {
       this.savedSets.status() === 'ready'
   );
 
-  public onFilesSelected(files: File[]): void {
+  public async onFilesSelected(files: File[]): Promise<void> {
+    this.isLoadingFiles.set(true);
     // Keep the current audio file so playback is not interrupted while tracks load.
     this.resetTracks();
     const cueFile = files.find((file) => /\.(cue|txt)$/i.test(file.name));
@@ -82,27 +84,30 @@ export class App {
     if (!cueFile && audioFiles.length > 0) {
       this.audioFile.set(audioFiles[0]);
       this.errorMessage.set('');
+      this.isLoadingFiles.set(false);
       return;
     }
 
     if (!cueFile) {
       this.errorMessage.set('Choose a .cue, .mp3, or .wav file.');
+      this.isLoadingFiles.set(false);
       return;
     }
 
-    this.readFile(cueFile)
-      .then((content) => {
-        const currentAudio = this.audioFile();
-        const availableAudioFiles = currentAudio ? [...audioFiles, currentAudio] : audioFiles;
-        this.audioFile.set(this.findAudioFile(availableAudioFiles, content));
-        this.processCueFile(cueFile.name, content);
-        if (this.playlist().length > 0) {
-          this.cueFile.set(cueFile);
-        }
-      })
-      .catch(() => {
-        this.errorMessage.set(`Unable to read ${cueFile.name}`);
-      });
+    try {
+      const content = await this.readFile(cueFile);
+      const currentAudio = this.audioFile();
+      const availableAudioFiles = currentAudio ? [...audioFiles, currentAudio] : audioFiles;
+      this.audioFile.set(this.findAudioFile(availableAudioFiles, content));
+      this.processCueFile(cueFile.name, content);
+      if (this.playlist().length > 0) {
+        this.cueFile.set(cueFile);
+      }
+    } catch {
+      this.errorMessage.set(`Unable to read ${cueFile.name}`);
+    } finally {
+      this.isLoadingFiles.set(false);
+    }
   }
 
   public clearPlaylist(): void {
@@ -143,14 +148,15 @@ export class App {
     }
   }
 
-  public onSavedSetLoaded({ set, files }: LoadedSet): void {
-    this.onFilesSelected(files);
+  public async onSavedSetLoaded({ set, files }: LoadedSet): Promise<void> {
+    await this.onFilesSelected(files);
     this.savedSetId.set(set.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   public async loadMockFiles(): Promise<void> {
     this.isLoadingMockFiles.set(true);
+    this.isLoadingFiles.set(true);
     this.errorMessage.set('');
 
     try {
@@ -175,11 +181,12 @@ export class App {
         })
       );
 
-      this.onFilesSelected(files);
+      await this.onFilesSelected(files);
     } catch (error) {
       const details = error instanceof Error ? error.message : 'Unknown error';
       this.errorMessage.set(`Unable to load mock files: ${details}`);
     } finally {
+      this.isLoadingFiles.set(false);
       this.isLoadingMockFiles.set(false);
     }
   }

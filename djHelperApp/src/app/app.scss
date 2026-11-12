@@ -70,6 +70,12 @@ h2 {
   cursor: wait;
 }
 
+.loading-message {
+  margin: 24px 0;
+  color: #aebcff;
+  text-align: center;
+}
+
 @media (max-width: 600px) {
   .djhelper-page {
     width: calc(100% - 24px);

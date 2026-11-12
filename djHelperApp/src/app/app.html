@@ -24,30 +24,36 @@
       (clearRequested)="clearPlaylist()"
     />
 
-    @if (audioFile(); as selectedAudio) {
-      <app-waveform
-        [file]="selectedAudio"
-        [trackMarkers]="trackMarkers()"
-        [canSave]="canSaveSet()"
-        [isSaving]="isSavingSet()"
-        [isSaved]="isCurrentSetSaved()"
-        (saveRequested)="saveSet()"
-      />
+    @if (isLoadingFiles()) {
+      <p class="loading-message" role="status" aria-live="polite">Loading files…</p>
+    } @else {
+      @if (audioFile(); as selectedAudio) {
+        <app-waveform
+          [file]="selectedAudio"
+          [trackMarkers]="trackMarkers()"
+          [canSave]="canSaveSet()"
+          [isSaving]="isSavingSet()"
+          [isSaved]="isCurrentSetSaved()"
+          (saveRequested)="saveSet()"
+        />
+      }
     }
   </section>
 
-  <section>
-    <app-search-bar (setLoaded)="onSavedSetLoaded($event)" />
-  </section>
+  @if (!isLoadingFiles()) {
+    <section>
+      <app-search-bar (setLoaded)="onSavedSetLoaded($event)" />
+    </section>
 
-  <section>
-    @if (playlist().length > 0) {
-      <app-track-list [tracks]="playlist()" />
-      <app-playlist-output [tracks]="playlist()" />
-    }
-  </section>
+    <section>
+      @if (playlist().length > 0) {
+        <app-track-list [tracks]="playlist()" />
+        <app-playlist-output [tracks]="playlist()" />
+      }
+    </section>
 
-  <app-saved-sets (setLoaded)="onSavedSetLoaded($event)" />
+    <app-saved-sets (setLoaded)="onSavedSetLoaded($event)" />
+  }
   
   <section>® This product is register under  Registered under MIT liscense 2026</section>
 </main>
