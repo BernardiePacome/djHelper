@@ -113,9 +113,10 @@ h2 {
   }
 
   .track-marker-line {
-    stroke: #fff;
+    stroke: #fffFF0;
     stroke-width: 1;
     pointer-events: none;
+    opacity: 50%;
   }
 
   .track-marker:focus-visible {
@@ -132,7 +133,7 @@ h2 {
 }
 
 .bars-played {
-  fill: #ff5500;
+  fill: #ff00fb;
 }
 
 .bars-reflection {

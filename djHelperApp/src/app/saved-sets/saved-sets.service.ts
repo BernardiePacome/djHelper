@@ -25,6 +25,26 @@ export interface StorageUsage {
 
 export type SavedSetsStatus = 'loading' | 'ready' | 'unavailable';
 
+interface LocalSetRecord {
+  id: string;
+  name: string;
+  createdAt: string;
+  cue: {
+    id: string;
+    name: string;
+    mime: string;
+    size: number;
+    blob: Blob;
+  };
+  audio: {
+    id: string;
+    name: string;
+    mime: string;
+    size: number;
+    blob: Blob;
+  };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -96,6 +116,8 @@ export class SavedSetsService {
   public readonly sets = signal<SavedSet[]>([]);
   public readonly storage = signal<StorageUsage | null>(null);
   public readonly status = signal<SavedSetsStatus>('loading');
+  private backend: 'server' | 'local' = 'server';
+  private readonly localUrls = new Map<string, string[]>();
 
   public async refresh(): Promise<void> {
     try {
@@ -115,13 +137,24 @@ export class SavedSetsService {
 
       this.sets.set(setsBody['sets']);
       this.storage.set(storageBody);
+      this.backend = 'server';
       this.status.set('ready');
     } catch {
-      this.status.set('unavailable');
+      try {
+        await this.refreshLocal();
+        this.backend = 'local';
+        this.status.set('ready');
+      } catch {
+        this.status.set('unavailable');
+      }
     }
   }
 
   public async save(name: string, cueFile: File, audioFile: File): Promise<SavedSet> {
+    if (this.backend === 'local') {
+      return this.saveLocal(name, cueFile, audioFile);
+    }
+
     const uploadedIds: string[] = [];
 
     try {
@@ -153,6 +186,13 @@ export class SavedSetsService {
   }
 
   public async remove(set: SavedSet): Promise<void> {
+    if (this.backend === 'local') {
+      await this.deleteLocal(set.id);
+      this.sets.update((sets) => sets.filter(({ id }) => id !== set.id));
+      await this.refreshLocalStorage();
+      return;
+    }
+
     const response = await fetch(`/api/sets/${set.id}`, { method: 'DELETE' });
     if (!response.ok && response.status !== 404) {
       throw new Error(await readError(response));
@@ -173,6 +213,120 @@ export class SavedSetsService {
         return new File([await response.blob()], name, { type: mime });
       })
     );
+  }
+
+  private async refreshLocal(): Promise<void> {
+    const records = await this.localRecords();
+    this.revokeLocalUrls();
+    this.sets.set(records.map((record) => this.toLocalSet(record)));
+    await this.refreshLocalStorage(records);
+  }
+
+  private async saveLocal(name: string, cueFile: File, audioFile: File): Promise<SavedSet> {
+    const id = this.newId();
+    const record: LocalSetRecord = {
+      id,
+      name: name.trim(),
+      createdAt: new Date().toISOString(),
+      cue: { id: `${id}-cue`, name: `${name}.cue`, mime: cueFile.type || 'text/plain', size: cueFile.size, blob: cueFile },
+      audio: {
+        id: `${id}-audio`,
+        name: `${name}${fileExtension(audioFile.name)}`,
+        mime: audioFile.type || 'application/octet-stream',
+        size: audioFile.size,
+        blob: audioFile,
+      },
+    };
+
+    await this.putLocal(record);
+    const set = this.toLocalSet(record);
+    this.sets.update((sets) => [set, ...sets]);
+    await this.refreshLocalStorage();
+    return set;
+  }
+
+  private async deleteLocal(id: string): Promise<void> {
+    await this.deleteLocalRecord(id);
+    const urls = this.localUrls.get(id) ?? [];
+    urls.forEach((url) => URL.revokeObjectURL(url));
+    this.localUrls.delete(id);
+  }
+
+  private toLocalSet(record: LocalSetRecord): SavedSet {
+    const urls = [URL.createObjectURL(record.cue.blob), URL.createObjectURL(record.audio.blob)];
+    this.localUrls.set(record.id, urls);
+    return {
+      id: record.id,
+      name: record.name,
+      createdAt: record.createdAt,
+      size: record.cue.size + record.audio.size,
+      cue: { id: record.cue.id, name: record.cue.name, mime: record.cue.mime, size: record.cue.size, url: urls[0] },
+      audio: {
+        id: record.audio.id,
+        name: record.audio.name,
+        mime: record.audio.mime,
+        size: record.audio.size,
+        url: urls[1],
+      },
+    };
+  }
+
+  private async refreshLocalStorage(records?: LocalSetRecord[]): Promise<void> {
+    const localRecords = records ?? (await this.localRecords());
+    const usedBytes = localRecords.reduce((total, record) => total + record.cue.size + record.audio.size, 0);
+    const estimate = await navigator.storage?.estimate();
+    const quotaBytes = estimate?.quota ?? 2 * 1024 ** 3;
+    this.storage.set({ usedBytes, quotaBytes, availableBytes: Math.max(quotaBytes - usedBytes, 0) });
+  }
+
+  private localRecords(): Promise<LocalSetRecord[]> {
+    return this.withLocalStore('readonly', (store) => this.requestResult(store.getAll()));
+  }
+
+  private putLocal(record: LocalSetRecord): Promise<void> {
+    return this.withLocalStore('readwrite', (store) => this.requestResult(store.put(record)).then(() => undefined));
+  }
+
+  private deleteLocalRecord(id: string): Promise<void> {
+    return this.withLocalStore('readwrite', (store) => this.requestResult(store.delete(id)).then(() => undefined));
+  }
+
+  private withLocalStore<T>(
+    mode: IDBTransactionMode,
+    action: (store: IDBObjectStore) => Promise<T>,
+  ): Promise<T> {
+    if (typeof indexedDB === 'undefined') {
+      return Promise.reject(new Error('Browser storage is unavailable'));
+    }
+
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('djhelper', 1);
+      request.onerror = () => reject(request.error ?? new Error('Unable to open browser storage'));
+      request.onupgradeneeded = () => request.result.createObjectStore('sets', { keyPath: 'id' });
+      request.onsuccess = () => {
+        const database = request.result;
+        const transaction = database.transaction('sets', mode);
+        action(transaction.objectStore('sets')).then(resolve, reject);
+        transaction.oncomplete = () => database.close();
+        transaction.onerror = () => reject(transaction.error ?? new Error('Browser storage request failed'));
+      };
+    });
+  }
+
+  private requestResult<T>(request: IDBRequest<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error ?? new Error('Browser storage request failed'));
+    });
+  }
+
+  private revokeLocalUrls(): void {
+    this.localUrls.forEach((urls) => urls.forEach((url) => URL.revokeObjectURL(url)));
+    this.localUrls.clear();
+  }
+
+  private newId(): string {
+    return `local-${crypto.randomUUID()}`;
   }
 
   private async upload(file: File): Promise<SavedFile> {

@@ -15,7 +15,7 @@
       <p class="muted">Loading saved sets…</p>
     }
     @case ('unavailable') {
-      <p class="muted">Saved sets are unavailable because the server can't be reached.</p>
+      <p class="muted">Saved sets are unavailable because browser storage can't be reached.</p>
     }
     @default {
       @if (sets().length === 0) {
