@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { parseCueTracks } from './cue-parser';
 import { CueFileDropzone } from './cue-file-dropzone/cue-file-dropzone';
+import { OptionsPanel } from './options-panel/options-panel';
 import { PlaylistOutput } from './playlist-output/playlist-output';
 import { SavedSets } from './saved-sets/saved-sets';
 import type { LoadedSet } from './saved-sets/saved-sets';
@@ -42,7 +43,7 @@ function isMockFileManifest(value: unknown): value is MockFileManifest {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CueFileDropzone, PlaylistOutput, SavedSets, SearchBar, TrackList, Waveform],
+  imports: [CueFileDropzone, OptionsPanel, PlaylistOutput, SavedSets, SearchBar, TrackList, Waveform],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

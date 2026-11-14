@@ -24,6 +24,8 @@
       (clearRequested)="clearPlaylist()"
     />
 
+    
+
     @if (isLoadingFiles()) {
       <p class="loading-message" role="status" aria-live="polite">Loading files…</p>
     } @else {
@@ -36,9 +38,11 @@
           [isSaved]="isCurrentSetSaved()"
           (saveRequested)="saveSet()"
         />
+      <app-options-panel />
       }
     }
   </section>
+
 
   @if (!isLoadingFiles()) {
     <section>

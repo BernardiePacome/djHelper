@@ -1,4 +1,4 @@
-<section class="waveform-panel" aria-label="Audio waveform">
+<section class="waveform-panel" aria-label="Audio waveform" [style.--waveform-color]="playbackOptions.waveformColor()">
   <div class="waveform-header">
     <h2>Waveform</h2>
     <span class="audio-file-name">{{ activeFile()?.name ?? file().name }}</span>

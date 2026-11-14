@@ -133,7 +133,7 @@ h2 {
 }
 
 .bars-played {
-  fill: #ff00fb;
+  fill: var(--waveform-color, #ff00fb);
 }
 
 .bars-reflection {

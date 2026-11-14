@@ -1,5 +1,6 @@
 import { Component, DestroyRef, computed, effect, inject, input, output, signal } from '@angular/core';
 import type { CueMarker } from '../set-track';
+import { PlaybackOptionsService } from '../options-panel/playback-options.service';
 import { PlaybackIcon } from './playback-icon';
 import { TrackTooltipText } from './track-tooltip-text';
 
@@ -19,6 +20,7 @@ export class Waveform {
   // Constructor
   public constructor() {
     inject(DestroyRef).onDestroy(() => {
+      this.fadeId++;
       this.stopPlaybackFrame();
       this.revokeAudioSource();
     });
@@ -27,6 +29,8 @@ export class Waveform {
       void this.loadWaveform(this.file());
     });
   }
+  protected readonly playbackOptions = inject(PlaybackOptionsService);
+  private fadeId = 0;
   // Constants
   private readonly tooltipSeparationThreshold = 36;
   private readonly barCount = 400;
@@ -109,6 +113,38 @@ export class Waveform {
         this.isLoading.set(false);
       }
     }
+  }
+
+  // Ramps the element volume; a newer fade cancels an older one. Resolves false when superseded.
+  private async fadeTo(audio: HTMLAudioElement, target: number): Promise<boolean> {
+    const fadeId = ++this.fadeId;
+    const durationMs = this.playbackOptions.fadeSeconds() * 1000;
+    const start = audio.volume;
+
+    if (durationMs <= 0 || start === target) {
+      audio.volume = target;
+      return true;
+    }
+
+    const startedAt = performance.now();
+    while (true) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      if (fadeId !== this.fadeId) {
+        return false;
+      }
+      const progress = Math.min(1, (performance.now() - startedAt) / durationMs);
+      audio.volume = start + (target - start) * progress;
+      if (progress >= 1) {
+        return true;
+      }
+    }
+  }
+
+  private async fadeIn(audio: HTMLAudioElement): Promise<void> {
+    if (this.playbackOptions.fadeSeconds() > 0) {
+      audio.volume = 0;
+    }
+    await this.fadeTo(audio, 1);
   }
 
   private isSameFile(first: File, second: File): boolean {
@@ -262,12 +298,19 @@ export class Waveform {
   public async togglePlayback(audio: HTMLAudioElement): Promise<void> {
     this.playbackError.set('');
     if (!audio.paused) {
-      audio.pause();
+      if (await this.fadeTo(audio, 0)) {
+        audio.pause();
+        audio.volume = 1;
+      }
       return;
     }
 
     try {
+      if (this.playbackOptions.fadeSeconds() > 0) {
+        audio.volume = 0;
+      }
       await audio.play();
+      void this.fadeTo(audio, 1);
     } catch (error) {
       this.playbackError.set(
         error instanceof Error ? `Unable to play audio: ${error.message}` : 'Unable to play this audio file.'
@@ -289,7 +332,7 @@ export class Waveform {
     this.stopPlaybackFrame();
   }
 
-  public skipToCue(audio: HTMLAudioElement, direction: 'previous' | 'next'): void {
+  public async skipToCue(audio: HTMLAudioElement, direction: 'previous' | 'next'): Promise<void> {
     if (!Number.isFinite(audio.duration)) {
       return;
     }
@@ -301,9 +344,16 @@ export class Waveform {
       .sort((first, second) => (direction === 'next' ? first - second : second - first))[0];
 
     if (target !== undefined) {
+      const wasPlaying = !audio.paused;
+      if (wasPlaying && !(await this.fadeTo(audio, 0))) {
+        return;
+      }
       audio.currentTime = target;
       this.currentTime.set(target);
       this.pinnedMarker.set(null);
+      if (wasPlaying) {
+        await this.fadeIn(audio);
+      }
     }
   }
 

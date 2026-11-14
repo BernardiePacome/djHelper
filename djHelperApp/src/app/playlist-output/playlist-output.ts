@@ -11,7 +11,7 @@ export class PlaylistOutput {
 
   public readonly tracks = input.required<SetTrack[]>();
 
-  public readonly isExpanded = signal(true);
+  public readonly isExpanded = signal(false);
 
   public readonly formattedText = computed(() =>
     this.tracks()
