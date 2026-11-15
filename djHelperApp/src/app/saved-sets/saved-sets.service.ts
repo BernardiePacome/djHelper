@@ -68,7 +68,7 @@ async function readError(response: Response): Promise<string> {
 
 async function requestJson(url: string, init?: RequestInit): Promise<unknown> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout for slower networks
 
   try {
     const response = await fetch(url, { ...init, signal: controller.signal });
