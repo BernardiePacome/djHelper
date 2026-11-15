@@ -10,9 +10,20 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     {
       provide: APP_INITIALIZER,
-      useFactory: (savedSets: SavedSetsService) => () => savedSets.refresh(),
+      useFactory: (savedSets: SavedSetsService) => async () => {
+        try {
+          await savedSets.refresh();
+        } catch (error) {
+          console.error('Failed to initialize saved sets:', error);
+          // Ensure the status is set even if refresh fails unexpectedly
+          if (savedSets.status() === 'loading') {
+            savedSets.status.set('unavailable');
+          }
+        }
+      },
       deps: [SavedSetsService],
       multi: true,
     },
   ],
 };
+
