@@ -130,7 +130,4 @@ dist
 .pnp.*
 
 # SQLite and server data files
-server/data/djhelper.sqlite-*
-server/data/uploads/*
-server/data/djhelper.*
-server/data/djhelper.sqlite
+server/data/*
