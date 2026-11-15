@@ -133,3 +133,4 @@ dist
 server/data/djhelper.sqlite-*
 server/data/uploads/*
 server/data/djhelper.*
+server/data/djhelper.sqlite
