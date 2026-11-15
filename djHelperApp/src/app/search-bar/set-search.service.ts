@@ -1,15 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { parseCueTracks } from '../cue-parser';
-import type { SetTrack } from '../set-track';
 import { SavedSetsService } from '../saved-sets/saved-sets.service';
-import type { SavedSet } from '../saved-sets/saved-sets.service';
 import { matchesAllTerms, searchTerms } from './search-text';
-
-export interface SetSearchResult {
-  set: SavedSet;
-  nameMatch: boolean;
-  tracks: SetTrack[];
-}
+import type { SetSearchResult } from '../interfaces/search';
+import type { SetTrack } from '../interfaces/set-track';
 
 @Injectable({ providedIn: 'root' })
 export class SetSearchService {

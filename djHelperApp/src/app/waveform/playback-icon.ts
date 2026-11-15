@@ -1,38 +1,12 @@
 import { Component, computed, input } from '@angular/core';
-
-type PlaybackIconName = 'play' | 'pause' | 'previous' | 'next';
+import type { PlaybackIconName } from '../interfaces/playback-icon';
 
 @Component({
   selector: 'app-playback-icon',
   standalone: true,
-  template: `
-    <img [src]="src()" alt="" aria-hidden="true" />
-    <span>{{ label() }}</span>
-  `,
-  styles: [
-    `
-      :host {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        white-space: nowrap;
-      }
-
-      img {
-        display: block;
-        width: 20px;
-        height: 20px;
-      }
-
-      @media (max-width: 600px) {
-        span {
-          display: none;
-        }
-      }
-    `
-  ],
+  templateUrl: './playback-icon.html',
+  styleUrl: './playback-icon.scss'
 })
-
 export class PlaybackIcon {
   private readonly assets: Record<PlaybackIconName, string> = {
     play: 'assets/icons/play.svg',

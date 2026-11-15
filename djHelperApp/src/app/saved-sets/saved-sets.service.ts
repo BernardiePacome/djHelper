@@ -1,49 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-
-export interface SavedFile {
-  id: string;
-  name: string;
-  mime: string;
-  size: number;
-  url: string;
-}
-
-export interface SavedSet {
-  id: string;
-  name: string;
-  createdAt: string;
-  size: number;
-  cue: SavedFile;
-  audio: SavedFile;
-}
-
-export interface StorageUsage {
-  usedBytes: number;
-  quotaBytes: number;
-  availableBytes: number;
-}
-
-export type SavedSetsStatus = 'loading' | 'ready' | 'unavailable';
-
-interface LocalSetRecord {
-  id: string;
-  name: string;
-  createdAt: string;
-  cue: {
-    id: string;
-    name: string;
-    mime: string;
-    size: number;
-    blob: Blob;
-  };
-  audio: {
-    id: string;
-    name: string;
-    mime: string;
-    size: number;
-    blob: Blob;
-  };
-}
+import type { SavedFile, SavedSet, StorageUsage, SavedSetsStatus, LocalSetRecord } from '../interfaces/saved-set';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;

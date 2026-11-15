@@ -4,25 +4,16 @@ import { CueFileDropzone } from './cue-file-dropzone/cue-file-dropzone';
 import { OptionsPanel } from './options-panel/options-panel';
 import { PlaylistOutput } from './playlist-output/playlist-output';
 import { SavedSets } from './saved-sets/saved-sets';
-import type { LoadedSet } from './saved-sets/saved-sets';
 import { SavedSetsService } from './saved-sets/saved-sets.service';
 import { SearchBar } from './search-bar/search-bar';
 import { TrackList } from './track-list/track-list';
 import { Waveform } from './waveform/waveform';
-import type { CueMarker, SetTrack } from './set-track';
 import { isMockModeUrl } from '../mocks/mock-mode';
+import type { MockFileArray } from './interfaces/mock-file';
+import type { LoadedSet } from './interfaces/saved-set';
+import type { SetTrack, CueMarker } from './interfaces/set-track';
 
-interface MockFile {
-  name: string;
-  url: string;
-  type: string;
-}
-
-interface MockFileManifest {
-  files: MockFile[];
-}
-
-function isMockFileManifest(value: unknown): value is MockFileManifest {
+function isMockFileArray(value: unknown): value is MockFileArray {
   if (typeof value !== 'object' || value === null || !('files' in value) || !Array.isArray(value.files)) {
     return false;
   }
@@ -171,7 +162,7 @@ export class App {
       }
 
       const manifest: unknown = await manifestResponse.json();
-      if (!isMockFileManifest(manifest)) {
+      if (!isMockFileArray(manifest)) {
         throw new Error('Mock manifest has an invalid format');
       }
 

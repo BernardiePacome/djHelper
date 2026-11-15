@@ -1,13 +1,8 @@
 import { Component, DestroyRef, computed, effect, inject, input, output, signal } from '@angular/core';
-import type { CueMarker } from '../set-track';
 import { PlaybackOptionsService } from '../options-panel/playback-options.service';
 import { PlaybackIcon } from './playback-icon';
 import { TrackTooltipText } from './track-tooltip-text';
-
-interface PositionedCueMarker extends CueMarker {
-  index: number;
-  x: number;
-}
+import type { CueMarker, PositionedCueMarker } from '../interfaces/set-track';
 
 @Component({
   selector: 'app-waveform',

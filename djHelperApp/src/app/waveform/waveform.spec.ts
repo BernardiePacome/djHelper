@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import type { CueMarker } from '../set-track';
 import { Waveform } from './waveform';
+import type { CueMarker } from '../interfaces/set-track';
 
 class MockAudioContext {
   public state: AudioContextState = 'running';

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { SavedSetsService } from './saved-sets.service';
-import type { SavedSet } from './saved-sets.service';
+import type { SavedSet } from '../interfaces/saved-set';
 
 const cueFile = { id: 'c1', name: 'mix.cue', mime: 'text/plain', size: 10, url: '/api/files/c1' };
 const audioFile = { id: 'a1', name: 'mix.mp3', mime: 'audio/mpeg', size: 90, url: '/api/files/a1' };

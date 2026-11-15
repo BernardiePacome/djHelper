@@ -1,12 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, inject, output, signal } from '@angular/core';
 import { SavedSetsService } from './saved-sets.service';
-import type { SavedSet } from './saved-sets.service';
-
-export interface LoadedSet {
-  set: SavedSet;
-  files: File[];
-}
+import type { SavedSet, LoadedSet } from '../interfaces/saved-set';
 
 export function formatBytes(bytes: number): string {
   const units = ['B', 'KB', 'MB', 'GB'];

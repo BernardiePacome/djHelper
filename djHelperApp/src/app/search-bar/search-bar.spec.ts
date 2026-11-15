@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { SavedSetsService } from '../saved-sets/saved-sets.service';
-import type { SavedSet, SavedSetsStatus } from '../saved-sets/saved-sets.service';
 import { SearchBar } from './search-bar';
+import type { SavedSet, SavedSetsStatus } from '../interfaces/saved-set';
 
 const savedSet: SavedSet = {
   id: 's1',

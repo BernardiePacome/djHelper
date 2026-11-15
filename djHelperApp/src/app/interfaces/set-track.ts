@@ -9,3 +9,12 @@ export interface CueMarker {
   title: string;
   artist: string;
 }
+
+export interface PositionedCueMarker extends CueMarker {
+  index: number;
+  x: number;
+}
+
+export interface IndexedCueMarker extends CueMarker {
+  index: number;
+}

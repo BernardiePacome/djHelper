@@ -1,7 +1,4 @@
-export interface TextSegment {
-  text: string;
-  match: boolean;
-}
+import type { TextSegment } from '../interfaces/search';
 
 export function normalizeSearchText(text: string): string {
   return text

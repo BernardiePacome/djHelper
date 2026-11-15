@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import type { SetTrack } from '../set-track';
 import { PlaylistOutput } from './playlist-output';
+import type { SetTrack } from '../interfaces/set-track';
 
 describe('PlaylistOutput', () => {
   const tracks: SetTrack[] = [

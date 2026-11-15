@@ -1,14 +1,11 @@
 import { Component, computed, input } from '@angular/core';
-import type { CueMarker } from '../set-track';
-
-interface IndexedCueMarker extends CueMarker {
-  index: number;
-}
+import type { IndexedCueMarker } from '../interfaces/set-track';
 
 @Component({
   selector: 'app-track-tooltip-text',
   standalone: true,
-  template: '{{ formattedText() }}'
+  templateUrl: './track-tooltip-text.html',
+  styleUrl: './track-tooltip-text.scss'
 })
 export class TrackTooltipText {
   public readonly marker = input.required<IndexedCueMarker>();
