@@ -67,12 +67,19 @@ async function readError(response: Response): Promise<string> {
 }
 
 async function requestJson(url: string, init?: RequestInit): Promise<unknown> {
-  const response = await fetch(url, init);
-  if (!response.ok) {
-    throw new Error(await readError(response));
-  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout for slower networks
 
-  return response.json();
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    if (!response.ok) {
+      throw new Error(await readError(response));
+    }
+
+    return response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -103,7 +110,7 @@ export class SavedSetsService {
       this.storage.set(storageBody);
       this.backend = 'server';
       this.status.set('ready');
-    } catch {
+    } catch (error) {
       try {
         await this.refreshLocal();
         this.backend = 'local';
