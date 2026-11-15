@@ -71,15 +71,16 @@ describe('PlaylistOutput', () => {
 
     expect(toggle.textContent).toContain('Playlist text');
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(element.querySelector('textarea')).toBeNull();
+
+    toggle.click();
+    fixture.detectChanges();
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(element.querySelector('textarea')).not.toBeNull();
 
     toggle.click();
     fixture.detectChanges();
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(element.querySelector('textarea')).toBeNull();
-
-    toggle.click();
-    fixture.detectChanges();
-    expect(element.querySelector('textarea')).not.toBeNull();
   });
 });
