@@ -10,6 +10,7 @@ import type { Config } from './config.ts';
 import { createFileStore, createSetStore, openDatabase } from './db.ts';
 import type { StoredFile, StoredSet } from './db.ts';
 import { classifyFile, sanitizeFileName } from './file-types.ts';
+import { analyzeWaveform } from './waveform.ts';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const DATABASE_FILE_NAME = 'djhelper.sqlite';
@@ -199,6 +200,34 @@ export async function buildApp(config: Config, options: { logger?: boolean } = {
     await rm(path.join(uploadsDir, id), { force: true });
     return reply.code(204).send();
   });
+
+  app.post<{ Params: { id: string } }>(
+    '/api/files/:id/waveform',
+    async (request, reply) => {
+      const { id } = request.params;
+      if (!UUID_PATTERN.test(id)) {
+        return reply.code(400).send({ error: 'Invalid file ID' });
+      }
+
+      const file = store.get(id);
+      if (!file) {
+        return reply.code(404).send({ error: 'File not found' });
+      }
+
+      if (file.kind !== 'audio') {
+        return reply.code(400).send({ error: 'Only audio files can be analyzed' });
+      }
+
+      try {
+        const filePath = path.join(uploadsDir, id);
+        const waveformData = await analyzeWaveform(filePath);
+        return reply.send(waveformData);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return reply.code(400).send({ error: `Failed to analyze waveform: ${message}` });
+      }
+    },
+  );
 
   app.get('/api/sets', async () => ({
     sets: sets.list().flatMap((set) => toSetResponse(set) ?? []),
