@@ -66,13 +66,39 @@ export class Waveform {
       return;
     }
 
+    // Warn if file is very large (> 500MB) - can cause memory issues on mobile
+    if (file.size > 500 * 1024 * 1024) {
+      if (loadId === this.loadId) {
+        this.errorMessage.set(
+          `File is too large (${(file.size / 1024 / 1024).toFixed(0)}MB). Please use a file under 500MB.`,
+        );
+      }
+      return;
+    }
+
     this.isLoading.set(true);
 
     let audioContext: AudioContext | undefined;
 
     try {
-      audioContext = new AudioContext();
-      const audioBuffer = await audioContext.decodeAudioData(await file.arrayBuffer());
+      // Create AudioContext with a try-catch to handle Safari mobile restrictions
+      try {
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      } catch (error) {
+        throw new Error('AudioContext not available. Please check browser permissions.');
+      }
+
+      // Check if context resumed (required on some browsers)
+      if (audioContext.state === 'suspended') {
+        try {
+          await audioContext.resume();
+        } catch {
+          // Silently continue - some browsers don't support resume
+        }
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
       if (loadId !== this.loadId) {
         return;
@@ -105,15 +131,27 @@ export class Waveform {
       this.playbackError.set('');
       this.peaks.set(waveformPeaks);
       this.duration.set(audioBuffer.duration);
-    } catch {
+    } catch (error) {
       if (loadId === this.loadId) {
-        this.errorMessage.set(
-          `Unable to decode ${file.name}. Try a browser-supported audio format such as WAV, MP3, or AIFF.`,
-        );
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        // Provide more helpful error messages for common issues
+        let userMessage = `Unable to decode ${file.name}`;
+        if (errorMsg.includes('not supported') || errorMsg.includes('NotSupportedError')) {
+          userMessage += ': Unsupported audio format. Try WAV, MP3, or AIFF.';
+        } else if (errorMsg.includes('memory') || errorMsg.includes('out of memory')) {
+          userMessage += ': File is too large for this device. Try a shorter audio file.';
+        } else {
+          userMessage += `. Try a browser-supported audio format such as WAV or MP3.`;
+        }
+        this.errorMessage.set(userMessage);
       }
     } finally {
       if (audioContext && audioContext.state !== 'closed') {
-        await audioContext.close();
+        try {
+          await audioContext.close();
+        } catch {
+          // Ignore errors when closing context
+        }
       }
       if (loadId === this.loadId) {
         this.isLoading.set(false);
