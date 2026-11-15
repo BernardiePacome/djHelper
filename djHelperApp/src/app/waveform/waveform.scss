@@ -38,7 +38,8 @@ h2 {
   top: 0;
   width: 18px;
   height: 18px;
-  filter: brightness(0) saturate(100%) invert(27%) sepia(95%) saturate(5344%) hue-rotate(341deg) brightness(102%) contrast(101%);
+  filter: brightness(0) saturate(100%) invert(27%) sepia(95%) saturate(5344%) hue-rotate(341deg)
+    brightness(102%) contrast(101%);
   pointer-events: none;
   transform: translateX(-50%) rotate(90deg);
 }
@@ -113,9 +114,10 @@ h2 {
   }
 
   .track-marker-line {
-    stroke: #fff;
+    stroke: #fffff0;
     stroke-width: 1;
     pointer-events: none;
+    opacity: 50%;
   }
 
   .track-marker:focus-visible {
@@ -132,7 +134,7 @@ h2 {
 }
 
 .bars-played {
-  fill: #ff5500;
+  fill: var(--waveform-color, #ff00fb);
 }
 
 .bars-reflection {
@@ -146,7 +148,11 @@ h2 {
   width: max-content;
   max-width: var(--tooltip-max-width);
   // Centre on the marker, but never closer to either edge than half the tooltip's maximum width.
-  left: clamp(calc(var(--tooltip-max-width) / 2), var(--marker-x), calc(100% - var(--tooltip-max-width) / 2));
+  left: clamp(
+    calc(var(--tooltip-max-width) / 2),
+    var(--marker-x),
+    calc(100% - var(--tooltip-max-width) / 2)
+  );
   padding: 6px 10px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 6px;

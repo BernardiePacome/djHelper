@@ -1,7 +1,4 @@
-export interface TextSegment {
-  text: string;
-  match: boolean;
-}
+import type { TextSegment } from '../interfaces/search';
 
 export function normalizeSearchText(text: string): string {
   return text
@@ -44,7 +41,11 @@ export function highlightMatches(text: string, query: string): TextSegment[] {
 
   const marked = new Array<boolean>(text.length).fill(false);
   for (const term of terms) {
-    for (let index = normalized.indexOf(term); index !== -1; index = normalized.indexOf(term, index + 1)) {
+    for (
+      let index = normalized.indexOf(term);
+      index !== -1;
+      index = normalized.indexOf(term, index + 1)
+    ) {
       marked.fill(true, starts[index], ends[index + term.length - 1]);
     }
   }

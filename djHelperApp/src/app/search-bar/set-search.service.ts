@@ -1,15 +1,9 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { parseCueTracks } from '../cue-parser';
-import type { SetTrack } from '../set-track';
 import { SavedSetsService } from '../saved-sets/saved-sets.service';
-import type { SavedSet } from '../saved-sets/saved-sets.service';
 import { matchesAllTerms, searchTerms } from './search-text';
-
-export interface SetSearchResult {
-  set: SavedSet;
-  nameMatch: boolean;
-  tracks: SetTrack[];
-}
+import type { SetSearchResult } from '../interfaces/search';
+import type { SetTrack } from '../interfaces/set-track';
 
 @Injectable({ providedIn: 'root' })
 export class SetSearchService {
@@ -41,7 +35,7 @@ export class SetSearchService {
     for (const set of this.savedSets.sets()) {
       const nameMatch = matchesAllTerms(set.name, terms);
       const tracks = (indexed[set.cue.id] ?? []).filter((track) =>
-        matchesAllTerms(`${track.artist} ${track.title}`, terms)
+        matchesAllTerms(`${track.artist} ${track.title}`, terms),
       );
 
       if (nameMatch || tracks.length > 0) {

@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import type { CueMarker } from '../set-track';
 import { Waveform } from './waveform';
+import type { CueMarker } from '../interfaces/set-track';
 
 class MockAudioContext {
   public state: AudioContextState = 'running';
@@ -88,15 +88,19 @@ describe('Waveform', () => {
         fixture.componentRef.setInput(name, value);
       }
       fixture.detectChanges();
-      const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.player-controls button'));
-      const saveButton = buttons.find((element) => /Save|Saving|Saved/.test(element.textContent ?? ''))!;
+      const buttons = Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll('.player-controls button'),
+      );
+      const saveButton = buttons.find((element) =>
+        /Save|Saving|Saved/.test(element.textContent ?? ''),
+      )!;
       return { fixture, buttons, saveButton: saveButton as HTMLButtonElement };
     };
 
     it('sits right after the next transition button and is disabled until the set can be saved', async () => {
       const { buttons, saveButton } = await render({ canSave: false });
       expect(buttons.indexOf(saveButton)).toBe(
-        buttons.findIndex((button) => button.getAttribute('aria-label') === 'Next Transition') + 1
+        buttons.findIndex((button) => button.getAttribute('aria-label') === 'Next Transition') + 1,
       );
       expect(saveButton.disabled).toBe(true);
       expect(saveButton.textContent).toContain('Save Set');
@@ -133,7 +137,12 @@ describe('Waveform', () => {
     let finishDecoding: () => void = () => undefined;
     const nextFile = new File(['next audio'], 'next.wav');
     Object.defineProperty(nextFile, 'arrayBuffer', {
-      value: vi.fn(() => new Promise<ArrayBuffer>((resolve) => (finishDecoding = () => resolve(new ArrayBuffer(4))))),
+      value: vi.fn(
+        () =>
+          new Promise<ArrayBuffer>(
+            (resolve) => (finishDecoding = () => resolve(new ArrayBuffer(4))),
+          ),
+      ),
     });
     fixture.componentRef.setInput('file', nextFile);
     fixture.detectChanges();

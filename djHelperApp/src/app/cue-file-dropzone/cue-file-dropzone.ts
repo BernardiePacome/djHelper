@@ -4,7 +4,7 @@ import { Component, input, output, signal } from '@angular/core';
   selector: 'app-cue-file-dropzone',
   standalone: true,
   templateUrl: './cue-file-dropzone.html',
-  styleUrl: './cue-file-dropzone.scss'
+  styleUrl: './cue-file-dropzone.scss',
 })
 export class CueFileDropzone {
   public readonly fileName = input('');

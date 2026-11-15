@@ -69,7 +69,7 @@ describe('CueFileDropzone', () => {
     const event = new Event('drop') as DragEvent;
 
     Object.defineProperty(event, 'dataTransfer', { value: null });
-    
+
     const selectedFiles: File[][] = [];
     component.filesSelected.subscribe((files) => selectedFiles.push(files));
     component.onDrop(event);

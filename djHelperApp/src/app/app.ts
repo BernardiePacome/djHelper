@@ -1,28 +1,25 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { parseCueTracks } from './cue-parser';
 import { CueFileDropzone } from './cue-file-dropzone/cue-file-dropzone';
+import { OptionsPanel } from './options-panel/options-panel';
 import { PlaylistOutput } from './playlist-output/playlist-output';
 import { SavedSets } from './saved-sets/saved-sets';
-import type { LoadedSet } from './saved-sets/saved-sets';
 import { SavedSetsService } from './saved-sets/saved-sets.service';
 import { SearchBar } from './search-bar/search-bar';
 import { TrackList } from './track-list/track-list';
 import { Waveform } from './waveform/waveform';
-import type { CueMarker, SetTrack } from './set-track';
 import { isMockModeUrl } from '../mocks/mock-mode';
+import type { MockFileArray } from './interfaces/mock-file';
+import type { LoadedSet } from './interfaces/saved-set';
+import type { SetTrack, CueMarker } from './interfaces/set-track';
 
-interface MockFile {
-  name: string;
-  url: string;
-  type: string;
-}
-
-interface MockFileManifest {
-  files: MockFile[];
-}
-
-function isMockFileManifest(value: unknown): value is MockFileManifest {
-  if (typeof value !== 'object' || value === null || !('files' in value) || !Array.isArray(value.files)) {
+function isMockFileArray(value: unknown): value is MockFileArray {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !('files' in value) ||
+    !Array.isArray(value.files)
+  ) {
     return false;
   }
 
@@ -35,16 +32,24 @@ function isMockFileManifest(value: unknown): value is MockFileManifest {
       'url' in file &&
       typeof file.url === 'string' &&
       'type' in file &&
-      typeof file.type === 'string'
+      typeof file.type === 'string',
   );
 }
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CueFileDropzone, PlaylistOutput, SavedSets, SearchBar, TrackList, Waveform],
+  imports: [
+    CueFileDropzone,
+    OptionsPanel,
+    PlaylistOutput,
+    SavedSets,
+    SearchBar,
+    TrackList,
+    Waveform,
+  ],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
 })
 export class App {
   private readonly savedSets = inject(SavedSetsService);
@@ -56,6 +61,7 @@ export class App {
   public readonly audioFile = signal<File | null>(null);
   public readonly trackMarkers = signal<CueMarker[]>([]);
   public readonly isLoadingMockFiles = signal(false);
+  public readonly isLoadingFiles = signal(false);
   public readonly cueFile = signal<File | null>(null);
   public readonly isSavingSet = signal(false);
   public readonly savedSetId = signal<string | null>(null);
@@ -68,41 +74,47 @@ export class App {
       this.cueFile() !== null &&
       this.audioFile() !== null &&
       this.playlist().length > 0 &&
-      this.savedSets.status() === 'ready'
+      this.savedSets.status() === 'ready',
   );
+  public readonly savedSetsReady = computed(() => this.savedSets.status() === 'ready');
+  public readonly loadedSetsList = computed(() => this.savedSets.sets().map((set) => set.name));
 
-  public onFilesSelected(files: File[]): void {
+  public async onFilesSelected(files: File[]): Promise<void> {
+    this.isLoadingFiles.set(true);
     // Keep the current audio file so playback is not interrupted while tracks load.
     this.resetTracks();
     const cueFile = files.find((file) => /\.(cue|txt)$/i.test(file.name));
     const audioFiles = files.filter((file) =>
-      /\.(wav|mp3|aiff|aif|flac|ogg|m4a|aac|opus|wma)$/i.test(file.name)
+      /\.(wav|mp3|aiff|aif|flac|ogg|m4a|aac|opus|wma)$/i.test(file.name),
     );
 
     if (!cueFile && audioFiles.length > 0) {
       this.audioFile.set(audioFiles[0]);
       this.errorMessage.set('');
+      this.isLoadingFiles.set(false);
       return;
     }
 
     if (!cueFile) {
       this.errorMessage.set('Choose a .cue, .mp3, or .wav file.');
+      this.isLoadingFiles.set(false);
       return;
     }
 
-    this.readFile(cueFile)
-      .then((content) => {
-        const currentAudio = this.audioFile();
-        const availableAudioFiles = currentAudio ? [...audioFiles, currentAudio] : audioFiles;
-        this.audioFile.set(this.findAudioFile(availableAudioFiles, content));
-        this.processCueFile(cueFile.name, content);
-        if (this.playlist().length > 0) {
-          this.cueFile.set(cueFile);
-        }
-      })
-      .catch(() => {
-        this.errorMessage.set(`Unable to read ${cueFile.name}`);
-      });
+    try {
+      const content = await this.readFile(cueFile);
+      const currentAudio = this.audioFile();
+      const availableAudioFiles = currentAudio ? [...audioFiles, currentAudio] : audioFiles;
+      this.audioFile.set(this.findAudioFile(availableAudioFiles, content));
+      this.processCueFile(cueFile.name, content);
+      if (this.playlist().length > 0) {
+        this.cueFile.set(cueFile);
+      }
+    } catch {
+      this.errorMessage.set(`Unable to read ${cueFile.name}`);
+    } finally {
+      this.isLoadingFiles.set(false);
+    }
   }
 
   public clearPlaylist(): void {
@@ -130,7 +142,11 @@ export class App {
     this.errorMessage.set('');
 
     try {
-      const set = await this.savedSets.save(cueFile.name.replace(/\.[^.]+$/, ''), cueFile, audioFile);
+      const set = await this.savedSets.save(
+        cueFile.name.replace(/\.[^.]+$/, ''),
+        cueFile,
+        audioFile,
+      );
       // Ignore the result if different files were loaded while the upload was running.
       if (this.audioFile() === audioFile) {
         this.savedSetId.set(set.id);
@@ -143,14 +159,15 @@ export class App {
     }
   }
 
-  public onSavedSetLoaded({ set, files }: LoadedSet): void {
-    this.onFilesSelected(files);
+  public async onSavedSetLoaded({ set, files }: LoadedSet): Promise<void> {
+    await this.onFilesSelected(files);
     this.savedSetId.set(set.id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   public async loadMockFiles(): Promise<void> {
     this.isLoadingMockFiles.set(true);
+    this.isLoadingFiles.set(true);
     this.errorMessage.set('');
 
     try {
@@ -160,7 +177,7 @@ export class App {
       }
 
       const manifest: unknown = await manifestResponse.json();
-      if (!isMockFileManifest(manifest)) {
+      if (!isMockFileArray(manifest)) {
         throw new Error('Mock manifest has an invalid format');
       }
 
@@ -172,14 +189,15 @@ export class App {
           }
 
           return new File([await response.blob()], name, { type });
-        })
+        }),
       );
 
-      this.onFilesSelected(files);
+      await this.onFilesSelected(files);
     } catch (error) {
       const details = error instanceof Error ? error.message : 'Unknown error';
       this.errorMessage.set(`Unable to load mock files: ${details}`);
     } finally {
+      this.isLoadingFiles.set(false);
       this.isLoadingMockFiles.set(false);
     }
   }
@@ -222,15 +240,15 @@ export class App {
       tracks.map((track) => ({
         time: this.cueTimeToSeconds(track.playTime),
         title: track.title,
-        artist: track.artist
-      }))
+        artist: track.artist,
+      })),
     );
 
     const lastTrackTime = tracks[tracks.length - 1].playTime;
     const removeLeadingZeroMinutes = lastTrackTime.split(':')[0] === '00';
     const parsedTracks = tracks.map((track) => ({
       ...track,
-      playTime: removeLeadingZeroMinutes ? track.playTime.substring(3) : track.playTime
+      playTime: removeLeadingZeroMinutes ? track.playTime.substring(3) : track.playTime,
     }));
 
     this.playlist.set(this.dedupeTracks(parsedTracks));
@@ -243,7 +261,8 @@ export class App {
 
     for (const track of tracks) {
       const isDuplicate = uniqueTracks.some(
-        (existingTrack) => existingTrack.title === track.title && existingTrack.artist === track.artist
+        (existingTrack) =>
+          existingTrack.title === track.title && existingTrack.artist === track.artist,
       );
 
       if (!isDuplicate) {

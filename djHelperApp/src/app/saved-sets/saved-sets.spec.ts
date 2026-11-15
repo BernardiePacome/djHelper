@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { SavedSets, formatBytes } from './saved-sets';
 import { SavedSetsService } from './saved-sets.service';
-import type { SavedSet, SavedSetsStatus, StorageUsage } from './saved-sets.service';
+import type { SavedSet, StorageUsage, SavedSetsStatus } from '../interfaces/saved-set';
 
 const savedSet: SavedSet = {
   id: 's1',
@@ -31,10 +31,11 @@ describe('SavedSets', () => {
     fixture.detectChanges();
     return fixture;
   };
-  const text = (fixture: ReturnType<typeof create>) => (fixture.nativeElement as HTMLElement).textContent ?? '';
+  const text = (fixture: ReturnType<typeof create>) =>
+    (fixture.nativeElement as HTMLElement).textContent ?? '';
   const button = (fixture: ReturnType<typeof create>, label: string) =>
     Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((element) =>
-      element.textContent?.includes(label)
+      element.textContent?.includes(label),
     )!;
 
   beforeEach(async () => {
@@ -51,10 +52,9 @@ describe('SavedSets', () => {
     }).compileComponents();
   });
 
-  it('refreshes on init and lists saved sets with storage usage', () => {
+  it('lists saved sets with storage usage', () => {
     const fixture = create();
 
-    expect(service.refresh).toHaveBeenCalledOnce();
     expect(text(fixture)).toContain('Friday night');
     expect(text(fixture)).toContain('mix.mp3');
     expect(text(fixture)).toContain('5.0 MB of 2.0 GB used');

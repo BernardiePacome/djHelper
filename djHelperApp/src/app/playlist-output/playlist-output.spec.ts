@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import type { SetTrack } from '../set-track';
 import { PlaylistOutput } from './playlist-output';
+import type { SetTrack } from '../interfaces/set-track';
 
 describe('PlaylistOutput', () => {
   const tracks: SetTrack[] = [
@@ -70,6 +70,11 @@ describe('PlaylistOutput', () => {
     const toggle = element.querySelector<HTMLButtonElement>('.collapse-toggle')!;
 
     expect(toggle.textContent).toContain('Playlist text');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(element.querySelector('textarea')).toBeNull();
+
+    toggle.click();
+    fixture.detectChanges();
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(element.querySelector('textarea')).not.toBeNull();
 
@@ -77,9 +82,5 @@ describe('PlaylistOutput', () => {
     fixture.detectChanges();
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(element.querySelector('textarea')).toBeNull();
-
-    toggle.click();
-    fixture.detectChanges();
-    expect(element.querySelector('textarea')).not.toBeNull();
   });
 });

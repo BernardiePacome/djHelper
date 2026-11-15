@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { SavedSetsService } from '../saved-sets/saved-sets.service';
-import type { SavedSet } from '../saved-sets/saved-sets.service';
 import { SetSearchService } from './set-search.service';
+import type { SavedSet } from '../interfaces/saved-set';
 
 function makeSet(id: string, name: string): SavedSet {
   return {
@@ -10,8 +10,20 @@ function makeSet(id: string, name: string): SavedSet {
     name,
     createdAt: '2026-11-10T10:00:00.000Z',
     size: 100,
-    cue: { id: `c-${id}`, name: `${name}.cue`, mime: 'text/plain', size: 10, url: `/api/files/c-${id}` },
-    audio: { id: `a-${id}`, name: `${name}.mp3`, mime: 'audio/mpeg', size: 90, url: `/api/files/a-${id}` },
+    cue: {
+      id: `c-${id}`,
+      name: `${name}.cue`,
+      mime: 'text/plain',
+      size: 10,
+      url: `/api/files/c-${id}`,
+    },
+    audio: {
+      id: `a-${id}`,
+      name: `${name}.mp3`,
+      mime: 'audio/mpeg',
+      size: 90,
+      url: `/api/files/a-${id}`,
+    },
   };
 }
 
@@ -19,13 +31,16 @@ function cue(...tracks: [artist: string, title: string, time: string][]): string
   return tracks
     .map(
       ([artist, title, time], index) =>
-        `  TRACK ${String(index + 1).padStart(2, '0')} AUDIO\n    TITLE "${title}"\n    PERFORMER "${artist}"\n    INDEX 01 ${time}\n`
+        `  TRACK ${String(index + 1).padStart(2, '0')} AUDIO\n    TITLE "${title}"\n    PERFORMER "${artist}"\n    INDEX 01 ${time}\n`,
     )
     .join('');
 }
 
 const cues: Record<string, string> = {
-  '/api/files/c-s1': cue(['CamelPhat', 'Needed You', '00:00:00'], ['Marten Hørger', 'I Know', '03:10:00']),
+  '/api/files/c-s1': cue(
+    ['CamelPhat', 'Needed You', '00:00:00'],
+    ['Marten Hørger', 'I Know', '03:10:00'],
+  ),
   '/api/files/c-s2': cue(['Skrillex', 'Rumble', '00:00:00']),
 };
 
@@ -44,7 +59,7 @@ describe('SetSearchService', () => {
     fetchMock = vi.fn(async (url: string) =>
       url in cues
         ? { ok: true, status: 200, text: async () => cues[url] }
-        : { ok: false, status: 404, text: async () => '' }
+        : { ok: false, status: 404, text: async () => '' },
     );
     vi.stubGlobal('fetch', fetchMock);
 
@@ -78,7 +93,9 @@ describe('SetSearchService', () => {
     const byArtist = service.search('camelphat');
     expect(byArtist.map(({ set }) => set.id)).toEqual(['s1']);
     expect(byArtist[0].nameMatch).toBe(false);
-    expect(byArtist[0].tracks).toEqual([{ artist: 'CamelPhat', title: 'Needed You', playTime: '00:00:00' }]);
+    expect(byArtist[0].tracks).toEqual([
+      { artist: 'CamelPhat', title: 'Needed You', playTime: '00:00:00' },
+    ]);
 
     expect(service.search('rumble').map(({ set }) => set.id)).toEqual(['s2']);
   });

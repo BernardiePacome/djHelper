@@ -1,12 +1,7 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, output, signal } from '@angular/core';
+import { Component, inject, output, signal } from '@angular/core';
 import { SavedSetsService } from './saved-sets.service';
-import type { SavedSet } from './saved-sets.service';
-
-export interface LoadedSet {
-  set: SavedSet;
-  files: File[];
-}
+import type { SavedSet, LoadedSet } from '../interfaces/saved-set';
 
 export function formatBytes(bytes: number): string {
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -25,9 +20,9 @@ export function formatBytes(bytes: number): string {
   standalone: true,
   imports: [DatePipe],
   templateUrl: './saved-sets.html',
-  styleUrl: './saved-sets.scss'
+  styleUrl: './saved-sets.scss',
 })
-export class SavedSets implements OnInit {
+export class SavedSets {
   private readonly savedSets = inject(SavedSetsService);
 
   public readonly setLoaded = output<LoadedSet>();
@@ -40,14 +35,14 @@ export class SavedSets implements OnInit {
   public readonly errorMessage = signal('');
   public readonly formatBytes = formatBytes;
 
-  public ngOnInit(): void {
-    void this.savedSets.refresh();
-  }
-
   public async load(set: SavedSet): Promise<void> {
-    await this.runFor(set, async () => {
-      this.setLoaded.emit({ set, files: await this.savedSets.load(set) });
-    }, 'load');
+    await this.runFor(
+      set,
+      async () => {
+        this.setLoaded.emit({ set, files: await this.savedSets.load(set) });
+      },
+      'load',
+    );
   }
 
   public async delete(set: SavedSet): Promise<void> {

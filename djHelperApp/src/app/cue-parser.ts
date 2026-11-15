@@ -1,4 +1,4 @@
-import type { SetTrack } from './set-track';
+import type { SetTrack } from './interfaces/set-track';
 
 export function parseCueTracks(cueText: string): SetTrack[] {
   const tracks: SetTrack[] = [];
@@ -9,7 +9,7 @@ export function parseCueTracks(cueText: string): SetTrack[] {
       tracks.push({
         title: currentTrack.title,
         artist: currentTrack.artist ?? 'Unknown',
-        playTime: currentTrack.playTime
+        playTime: currentTrack.playTime,
       });
     }
   };
