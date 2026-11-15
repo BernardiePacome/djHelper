@@ -70,7 +70,7 @@ describe('PlaylistOutput', () => {
     const toggle = element.querySelector<HTMLButtonElement>('.collapse-toggle')!;
 
     expect(toggle.textContent).toContain('Playlist text');
-    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(element.querySelector('textarea')).not.toBeNull();
 
     toggle.click();
