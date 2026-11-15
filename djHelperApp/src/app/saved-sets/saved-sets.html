@@ -2,7 +2,9 @@
   <div class="saved-sets-header">
     <h2>Saved Sets</h2>
     @if (storage(); as usage) {
-      <span class="storage">{{ formatBytes(usage.usedBytes) }} of {{ formatBytes(usage.quotaBytes) }} used</span>
+      <span class="storage"
+        >{{ formatBytes(usage.usedBytes) }} of {{ formatBytes(usage.quotaBytes) }} used</span
+      >
     }
   </div>
 
@@ -27,14 +29,23 @@
               <div class="set-info">
                 <span class="set-name">{{ set.name }}</span>
                 <span class="set-meta">
-                  {{ set.audio.name }} · {{ formatBytes(set.size) }} · {{ set.createdAt | date: 'mediumDate' }}
+                  {{ set.audio.name }} · {{ formatBytes(set.size) }} ·
+                  {{ set.createdAt | date: 'mediumDate' }}
                 </span>
               </div>
 
               <div class="set-actions">
                 @if (pendingDeleteId() === set.id) {
-                  <button type="button" class="danger-button" (click)="delete(set)">Confirm delete</button>
-                  <button type="button" class="secondary-button" (click)="pendingDeleteId.set(null)">Cancel</button>
+                  <button type="button" class="danger-button" (click)="delete(set)">
+                    Confirm delete
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary-button"
+                    (click)="pendingDeleteId.set(null)"
+                  >
+                    Cancel
+                  </button>
                 } @else {
                   <button
                     type="button"

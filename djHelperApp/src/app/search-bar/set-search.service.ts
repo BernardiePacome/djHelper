@@ -35,7 +35,7 @@ export class SetSearchService {
     for (const set of this.savedSets.sets()) {
       const nameMatch = matchesAllTerms(set.name, terms);
       const tracks = (indexed[set.cue.id] ?? []).filter((track) =>
-        matchesAllTerms(`${track.artist} ${track.title}`, terms)
+        matchesAllTerms(`${track.artist} ${track.title}`, terms),
       );
 
       if (nameMatch || tracks.length > 0) {

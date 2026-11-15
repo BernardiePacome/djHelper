@@ -15,7 +15,10 @@ const savedSet: SavedSet = {
 const usage = { usedBytes: 100, quotaBytes: 2048, availableBytes: 1948 };
 
 function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
 }
 
 function uploadResponse(init: RequestInit): Response {
@@ -39,7 +42,7 @@ describe('SavedSetsService', () => {
 
   it('loads sets and storage usage', async () => {
     fetchMock.mockImplementation(async (url: string) =>
-      url === '/api/sets' ? json({ sets: [savedSet] }) : json(usage)
+      url === '/api/sets' ? json({ sets: [savedSet] }) : json(usage),
     );
 
     await service.refresh();
@@ -70,12 +73,20 @@ describe('SavedSetsService', () => {
       return json(usage);
     });
 
-    const set = await service.save('mix', new File(['cue'], 'mix.cue'), new File(['audio'], 'mix.mp3'));
+    const set = await service.save(
+      'mix',
+      new File(['cue'], 'mix.cue'),
+      new File(['audio'], 'mix.mp3'),
+    );
 
     expect(set).toEqual(savedSet);
     expect(service.sets()).toEqual([savedSet]);
     const setCall = fetchMock.mock.calls.find(([url]) => url === '/api/sets');
-    expect(JSON.parse(setCall![1].body)).toEqual({ name: 'mix', cueFileId: 'c1', audioFileId: 'a1' });
+    expect(JSON.parse(setCall![1].body)).toEqual({
+      name: 'mix',
+      cueFileId: 'c1',
+      audioFileId: 'a1',
+    });
   });
 
   it('saves the cue and audio under the set name, keeping the audio format', async () => {
@@ -88,7 +99,11 @@ describe('SavedSetsService', () => {
       return url === '/api/sets' ? json(savedSet, 201) : json(usage);
     });
 
-    await service.save('mix', new File(['cue'], 'Other name.TXT'), new File(['audio'], 'Different Track.WAV'));
+    await service.save(
+      'mix',
+      new File(['cue'], 'Other name.TXT'),
+      new File(['audio'], 'Different Track.WAV'),
+    );
 
     expect(uploadedNames).toEqual(['mix.cue', 'mix.wav']);
   });
@@ -105,10 +120,12 @@ describe('SavedSetsService', () => {
     });
 
     await expect(
-      service.save('mix', new File(['cue'], 'mix.cue'), new File(['audio'], 'mix.mp3'))
+      service.save('mix', new File(['cue'], 'mix.cue'), new File(['audio'], 'mix.mp3')),
     ).rejects.toThrow('Storage quota exceeded');
 
-    const deletes = fetchMock.mock.calls.filter(([, init]) => init?.method === 'DELETE').map(([url]) => url);
+    const deletes = fetchMock.mock.calls
+      .filter(([, init]) => init?.method === 'DELETE')
+      .map(([url]) => url);
     expect(deletes.sort()).toEqual(['/api/files/a1', '/api/files/c1']);
     expect(service.sets()).toEqual([]);
   });
@@ -116,7 +133,7 @@ describe('SavedSetsService', () => {
   it('removes a set from the list', async () => {
     service.sets.set([savedSet]);
     fetchMock.mockImplementation(async (url: string) =>
-      url === '/api/sets/s1' ? new Response(null, { status: 204 }) : json(usage)
+      url === '/api/sets/s1' ? new Response(null, { status: 204 }) : json(usage),
     );
 
     await service.remove(savedSet);

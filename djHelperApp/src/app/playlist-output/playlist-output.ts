@@ -5,10 +5,9 @@ import type { SetTrack } from '../interfaces/set-track';
   selector: 'app-playlist-output',
   standalone: true,
   templateUrl: './playlist-output.html',
-  styleUrl: './playlist-output.scss'
+  styleUrl: './playlist-output.scss',
 })
 export class PlaylistOutput {
-
   public readonly tracks = input.required<SetTrack[]>();
 
   public readonly isExpanded = signal(false);
@@ -16,7 +15,7 @@ export class PlaylistOutput {
   public readonly formattedText = computed(() =>
     this.tracks()
       .map((track, index) => `${index + 1}: ${track.artist} - ${track.title} - ${track.playTime}`)
-      .join('\n')
+      .join('\n'),
   );
 
   public toggleExpanded(): void {
@@ -35,7 +34,7 @@ export class PlaylistOutput {
     textArea.setAttribute('readonly', 'true');
     textArea.style.position = 'fixed';
     textArea.style.opacity = '0';
-    
+
     document.body.appendChild(textArea);
     textArea.select();
 

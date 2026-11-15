@@ -11,7 +11,7 @@ const MAX_TRACKS_SHOWN = 5;
   selector: 'app-search-bar',
   standalone: true,
   templateUrl: './search-bar.html',
-  styleUrl: './search-bar.scss'
+  styleUrl: './search-bar.scss',
 })
 export class SearchBar {
   private readonly savedSets = inject(SavedSetsService);
@@ -29,9 +29,9 @@ export class SearchBar {
       tracks: tracks.slice(0, MAX_TRACKS_SHOWN).map((track) => ({
         artist: highlightMatches(track.artist, query),
         title: highlightMatches(track.title, query),
-        playTime: track.playTime
+        playTime: track.playTime,
       })),
-      hiddenTrackCount: Math.max(0, tracks.length - MAX_TRACKS_SHOWN)
+      hiddenTrackCount: Math.max(0, tracks.length - MAX_TRACKS_SHOWN),
     }));
   });
   public readonly isIndexing = computed(() => this.setSearch.pendingCount() > 0);

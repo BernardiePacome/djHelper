@@ -1,4 +1,13 @@
-import { Component, DestroyRef, computed, effect, inject, input, output, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { PlaybackOptionsService } from '../options-panel/playback-options.service';
 import { PlaybackIcon } from './playback-icon';
 import { TrackTooltipText } from './track-tooltip-text';
@@ -9,7 +18,7 @@ import type { CueMarker, PositionedCueMarker } from '../interfaces/set-track';
   standalone: true,
   imports: [PlaybackIcon, TrackTooltipText],
   templateUrl: './waveform.html',
-  styleUrl: './waveform.scss'
+  styleUrl: './waveform.scss',
 })
 export class Waveform {
   // Constructor
@@ -31,7 +40,7 @@ export class Waveform {
   private readonly barCount = 400;
   private static nextInstanceId = 0;
   protected readonly clipId = `waveform-clip-${Waveform.nextInstanceId++}`;
-    // Inputs 
+  // Inputs
   public readonly file = input.required<File>();
   public readonly trackMarkers = input<CueMarker[]>([]);
   public readonly canSave = input(false);
@@ -45,7 +54,7 @@ export class Waveform {
   public readonly activeFile = signal<File | null>(null);
   private playbackFrameId: number | null = null;
   private readonly pinnedMarker = signal<PositionedCueMarker | null>(null);
-  
+
   // The current player keeps running while a new file is analyzed; it is only swapped once decoding succeeds.
   private async loadWaveform(file: File): Promise<void> {
     const loadId = ++this.loadId;
@@ -98,7 +107,9 @@ export class Waveform {
       this.duration.set(audioBuffer.duration);
     } catch {
       if (loadId === this.loadId) {
-        this.errorMessage.set(`Unable to decode ${file.name}. Try a browser-supported audio format such as WAV, MP3, or AIFF.`);
+        this.errorMessage.set(
+          `Unable to decode ${file.name}. Try a browser-supported audio format such as WAV, MP3, or AIFF.`,
+        );
       }
     } finally {
       if (audioContext && audioContext.state !== 'closed') {
@@ -145,7 +156,9 @@ export class Waveform {
   private isSameFile(first: File, second: File): boolean {
     return (
       first === second ||
-      (first.name === second.name && first.size === second.size && first.lastModified === second.lastModified)
+      (first.name === second.name &&
+        first.size === second.size &&
+        first.lastModified === second.lastModified)
     );
   }
 
@@ -193,15 +206,15 @@ export class Waveform {
 
   // Computed
   public readonly playbackPosition = computed(() =>
-    this.duration() > 0 ? (this.currentTime() / this.duration()) * 1200 : 0
+    this.duration() > 0 ? (this.currentTime() / this.duration()) * 1200 : 0,
   );
 
   public readonly hasPreviousCue = computed(() =>
-    this.visibleTrackMarkers().some((marker) => marker.time < this.currentTime())
+    this.visibleTrackMarkers().some((marker) => marker.time < this.currentTime()),
   );
 
   public readonly hasNextCue = computed(() =>
-    this.visibleTrackMarkers().some((marker) => marker.time > this.currentTime())
+    this.visibleTrackMarkers().some((marker) => marker.time > this.currentTime()),
   );
 
   public readonly formattedCurrentTime = computed(() => this.formatTime(this.currentTime()));
@@ -235,8 +248,11 @@ export class Waveform {
     this.duration() > 0
       ? this.trackMarkers()
           .map((marker, index) => ({ ...marker, index, x: (marker.time / this.duration()) * 1200 }))
-          .filter((marker) => Number.isFinite(marker.time) && marker.time >= 0 && marker.time <= this.duration())
-      : []
+          .filter(
+            (marker) =>
+              Number.isFinite(marker.time) && marker.time >= 0 && marker.time <= this.duration(),
+          )
+      : [],
   );
 
   public readonly activeTooltipMarkers = computed(() => {
@@ -256,14 +272,15 @@ export class Waveform {
     }
 
     const [firstMarker, nextMarker] =
-      activeMarker.index <= nearbyMarker.index ? [activeMarker, nearbyMarker] : [nearbyMarker, activeMarker];
+      activeMarker.index <= nearbyMarker.index
+        ? [activeMarker, nearbyMarker]
+        : [nearbyMarker, activeMarker];
 
     return [
       { marker: firstMarker, position: 'top' as const },
-      { marker: nextMarker, position: 'bottom' as const }
+      { marker: nextMarker, position: 'bottom' as const },
     ];
   });
-
 
   public showMarkerTooltip(marker: PositionedCueMarker): void {
     this.hoveredMarker.set(marker);
@@ -274,7 +291,9 @@ export class Waveform {
   }
 
   public togglePinnedMarker(marker: PositionedCueMarker): void {
-    this.pinnedMarker.update((pinnedMarker) => (pinnedMarker?.index === marker.index ? null : marker));
+    this.pinnedMarker.update((pinnedMarker) =>
+      pinnedMarker?.index === marker.index ? null : marker,
+    );
   }
 
   public seekAudio(event: MouseEvent, audio: HTMLAudioElement): void {
@@ -308,7 +327,9 @@ export class Waveform {
       void this.fadeTo(audio, 1);
     } catch (error) {
       this.playbackError.set(
-        error instanceof Error ? `Unable to play audio: ${error.message}` : 'Unable to play this audio file.'
+        error instanceof Error
+          ? `Unable to play audio: ${error.message}`
+          : 'Unable to play this audio file.',
       );
     }
   }

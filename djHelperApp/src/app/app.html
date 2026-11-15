@@ -24,8 +24,6 @@
       (clearRequested)="clearPlaylist()"
     />
 
-    
-
     @if (isLoadingFiles()) {
       <p class="loading-message" role="status" aria-live="polite">Loading files…</p>
     } @else {
@@ -38,17 +36,18 @@
           [isSaved]="isCurrentSetSaved()"
           (saveRequested)="saveSet()"
         />
-      <app-options-panel />
+        <app-options-panel />
       }
     }
   </section>
-
 
   @if (!isLoadingFiles()) {
     <section>
       @if (savedSetsReady() && loadedSetsList().length > 0) {
         <div class="startup-info">
-          <p class="startup-message">{{ loadedSetsList().length }} set(s) already loaded: {{ loadedSetsList().join(', ') }}</p>
+          <p class="startup-message">
+            {{ loadedSetsList().length }} set(s) already loaded: {{ loadedSetsList().join(', ') }}
+          </p>
         </div>
       }
     </section>
@@ -66,6 +65,6 @@
 
     <app-saved-sets (setLoaded)="onSavedSetLoaded($event)" />
   }
-  
-  <section>® This product is register under  Registered under MIT liscense 2026</section>
+
+  <section>® This product is register under Registered under MIT liscense 2026</section>
 </main>

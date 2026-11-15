@@ -32,6 +32,8 @@ describe('parseCueTracks', () => {
       '    INDEX 01 02:00:00',
     ].join('\n');
 
-    expect(parseCueTracks(cue)).toEqual([{ title: 'No artist', artist: 'Unknown', playTime: '00:00:00' }]);
+    expect(parseCueTracks(cue)).toEqual([
+      { title: 'No artist', artist: 'Unknown', playTime: '00:00:00' },
+    ]);
   });
 });

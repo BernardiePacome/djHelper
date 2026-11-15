@@ -42,7 +42,8 @@ describe('App', () => {
   it('hides other components while cue and audio files are loading', async () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
-    const cueText = 'FILE "mix.mp3" MP3\n  TRACK 01 AUDIO\n    TITLE "Song"\n    PERFORMER "Artist"\n    INDEX 01 00:00:00\n';
+    const cueText =
+      'FILE "mix.mp3" MP3\n  TRACK 01 AUDIO\n    TITLE "Song"\n    PERFORMER "Artist"\n    INDEX 01 00:00:00\n';
     const files = [new File([cueText], 'mix.cue'), new File(['audio'], 'mix.mp3')];
 
     const loading = app.onFilesSelected(files);
@@ -71,7 +72,8 @@ describe('App saved sets', () => {
     cue: { id: 'c1', name: 'mix.cue', mime: 'text/plain', size: 10, url: '/api/files/c1' },
     audio: { id: 'a1', name: 'mix.mp3', mime: 'audio/mpeg', size: 90, url: '/api/files/a1' },
   };
-  const cueText = 'FILE "mix.mp3" MP3\n  TRACK 01 AUDIO\n    TITLE "Song"\n    PERFORMER "Artist"\n    INDEX 01 00:00:00\n';
+  const cueText =
+    'FILE "mix.mp3" MP3\n  TRACK 01 AUDIO\n    TITLE "Song"\n    PERFORMER "Artist"\n    INDEX 01 00:00:00\n';
 
   const sets = signal<SavedSet[]>([]);
   const status = signal<'loading' | 'ready' | 'unavailable'>('ready');

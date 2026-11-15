@@ -41,7 +41,7 @@ describe('SearchBar', () => {
     service.load.mockReset();
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => ({ ok: true, status: 200, text: async () => cueText }))
+      vi.fn(async () => ({ ok: true, status: 200, text: async () => cueText })),
     );
 
     await TestBed.configureTestingModule({
@@ -121,7 +121,9 @@ describe('SearchBar', () => {
     const fixture = create();
     await type(fixture, 'friday');
 
-    root(fixture).querySelector('input')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    root(fixture)
+      .querySelector('input')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.query()).toBe('');
@@ -151,6 +153,8 @@ describe('SearchBar', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(root(fixture).textContent).toContain('Unable to load "Friday night": Unable to load mix.cue (404)');
+    expect(root(fixture).textContent).toContain(
+      'Unable to load "Friday night": Unable to load mix.cue (404)',
+    );
   });
 });

@@ -31,10 +31,11 @@ describe('SavedSets', () => {
     fixture.detectChanges();
     return fixture;
   };
-  const text = (fixture: ReturnType<typeof create>) => (fixture.nativeElement as HTMLElement).textContent ?? '';
+  const text = (fixture: ReturnType<typeof create>) =>
+    (fixture.nativeElement as HTMLElement).textContent ?? '';
   const button = (fixture: ReturnType<typeof create>, label: string) =>
     Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((element) =>
-      element.textContent?.includes(label)
+      element.textContent?.includes(label),
     )!;
 
   beforeEach(async () => {

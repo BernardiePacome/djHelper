@@ -20,7 +20,7 @@ export function formatBytes(bytes: number): string {
   standalone: true,
   imports: [DatePipe],
   templateUrl: './saved-sets.html',
-  styleUrl: './saved-sets.scss'
+  styleUrl: './saved-sets.scss',
 })
 export class SavedSets {
   private readonly savedSets = inject(SavedSetsService);
@@ -36,9 +36,13 @@ export class SavedSets {
   public readonly formatBytes = formatBytes;
 
   public async load(set: SavedSet): Promise<void> {
-    await this.runFor(set, async () => {
-      this.setLoaded.emit({ set, files: await this.savedSets.load(set) });
-    }, 'load');
+    await this.runFor(
+      set,
+      async () => {
+        this.setLoaded.emit({ set, files: await this.savedSets.load(set) });
+      },
+      'load',
+    );
   }
 
   public async delete(set: SavedSet): Promise<void> {

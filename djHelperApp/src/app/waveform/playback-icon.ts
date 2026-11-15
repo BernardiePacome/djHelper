@@ -5,7 +5,7 @@ import type { PlaybackIconName } from '../interfaces/playback-icon';
   selector: 'app-playback-icon',
   standalone: true,
   templateUrl: './playback-icon.html',
-  styleUrl: './playback-icon.scss'
+  styleUrl: './playback-icon.scss',
 })
 export class PlaybackIcon {
   private readonly assets: Record<PlaybackIconName, string> = {

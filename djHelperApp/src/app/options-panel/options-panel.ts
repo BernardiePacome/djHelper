@@ -5,7 +5,7 @@ import { PlaybackOptionsService } from './playback-options.service';
   selector: 'app-options-panel',
   standalone: true,
   templateUrl: './options-panel.html',
-  styleUrl: './options-panel.scss'
+  styleUrl: './options-panel.scss',
 })
 export class OptionsPanel {
   protected readonly options = inject(PlaybackOptionsService);

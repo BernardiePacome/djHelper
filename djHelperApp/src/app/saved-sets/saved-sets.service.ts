@@ -1,5 +1,11 @@
 import { Injectable, signal } from '@angular/core';
-import type { SavedFile, SavedSet, StorageUsage, SavedSetsStatus, LocalSetRecord } from '../interfaces/saved-set';
+import type {
+  SavedFile,
+  SavedSet,
+  StorageUsage,
+  SavedSetsStatus,
+  LocalSetRecord,
+} from '../interfaces/saved-set';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -42,7 +48,9 @@ function fileExtension(fileName: string): string {
 }
 
 function renamedFile(file: File, name: string): File {
-  return file.name === name ? file : new File([file], name, { type: file.type, lastModified: file.lastModified });
+  return file.name === name
+    ? file
+    : new File([file], name, { type: file.type, lastModified: file.lastModified });
 }
 
 async function readError(response: Response): Promise<string> {
@@ -117,7 +125,9 @@ export class SavedSetsService {
       // Both files share the set name; only their extensions differ (.cue and the audio's own format).
       const cue = await this.upload(renamedFile(cueFile, `${name}.cue`));
       uploadedIds.push(cue.id);
-      const audio = await this.upload(renamedFile(audioFile, `${name}${fileExtension(audioFile.name)}`));
+      const audio = await this.upload(
+        renamedFile(audioFile, `${name}${fileExtension(audioFile.name)}`),
+      );
       uploadedIds.push(audio.id);
 
       const body = await requestJson('/api/sets', {
@@ -135,7 +145,7 @@ export class SavedSetsService {
     } catch (error) {
       // Files that never made it into a set would otherwise keep using the quota.
       await Promise.allSettled(
-        uploadedIds.map((id) => fetch(`/api/files/${id}`, { method: 'DELETE' }))
+        uploadedIds.map((id) => fetch(`/api/files/${id}`, { method: 'DELETE' })),
       );
       throw error;
     }
@@ -167,7 +177,7 @@ export class SavedSetsService {
         }
 
         return new File([await response.blob()], name, { type: mime });
-      })
+      }),
     );
   }
 
@@ -184,7 +194,13 @@ export class SavedSetsService {
       id,
       name: name.trim(),
       createdAt: new Date().toISOString(),
-      cue: { id: `${id}-cue`, name: `${name}.cue`, mime: cueFile.type || 'text/plain', size: cueFile.size, blob: cueFile },
+      cue: {
+        id: `${id}-cue`,
+        name: `${name}.cue`,
+        mime: cueFile.type || 'text/plain',
+        size: cueFile.size,
+        blob: cueFile,
+      },
       audio: {
         id: `${id}-audio`,
         name: `${name}${fileExtension(audioFile.name)}`,
@@ -216,7 +232,13 @@ export class SavedSetsService {
       name: record.name,
       createdAt: record.createdAt,
       size: record.cue.size + record.audio.size,
-      cue: { id: record.cue.id, name: record.cue.name, mime: record.cue.mime, size: record.cue.size, url: urls[0] },
+      cue: {
+        id: record.cue.id,
+        name: record.cue.name,
+        mime: record.cue.mime,
+        size: record.cue.size,
+        url: urls[0],
+      },
       audio: {
         id: record.audio.id,
         name: record.audio.name,
@@ -229,10 +251,17 @@ export class SavedSetsService {
 
   private async refreshLocalStorage(records?: LocalSetRecord[]): Promise<void> {
     const localRecords = records ?? (await this.localRecords());
-    const usedBytes = localRecords.reduce((total, record) => total + record.cue.size + record.audio.size, 0);
+    const usedBytes = localRecords.reduce(
+      (total, record) => total + record.cue.size + record.audio.size,
+      0,
+    );
     const estimate = await navigator.storage?.estimate();
     const quotaBytes = estimate?.quota ?? 2 * 1024 ** 3;
-    this.storage.set({ usedBytes, quotaBytes, availableBytes: Math.max(quotaBytes - usedBytes, 0) });
+    this.storage.set({
+      usedBytes,
+      quotaBytes,
+      availableBytes: Math.max(quotaBytes - usedBytes, 0),
+    });
   }
 
   private localRecords(): Promise<LocalSetRecord[]> {
@@ -240,11 +269,15 @@ export class SavedSetsService {
   }
 
   private putLocal(record: LocalSetRecord): Promise<void> {
-    return this.withLocalStore('readwrite', (store) => this.requestResult(store.put(record)).then(() => undefined));
+    return this.withLocalStore('readwrite', (store) =>
+      this.requestResult(store.put(record)).then(() => undefined),
+    );
   }
 
   private deleteLocalRecord(id: string): Promise<void> {
-    return this.withLocalStore('readwrite', (store) => this.requestResult(store.delete(id)).then(() => undefined));
+    return this.withLocalStore('readwrite', (store) =>
+      this.requestResult(store.delete(id)).then(() => undefined),
+    );
   }
 
   private withLocalStore<T>(
@@ -264,7 +297,8 @@ export class SavedSetsService {
         const transaction = database.transaction('sets', mode);
         action(transaction.objectStore('sets')).then(resolve, reject);
         transaction.oncomplete = () => database.close();
-        transaction.onerror = () => reject(transaction.error ?? new Error('Browser storage request failed'));
+        transaction.onerror = () =>
+          reject(transaction.error ?? new Error('Browser storage request failed'));
       };
     });
   }

@@ -14,7 +14,12 @@ import type { LoadedSet } from './interfaces/saved-set';
 import type { SetTrack, CueMarker } from './interfaces/set-track';
 
 function isMockFileArray(value: unknown): value is MockFileArray {
-  if (typeof value !== 'object' || value === null || !('files' in value) || !Array.isArray(value.files)) {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !('files' in value) ||
+    !Array.isArray(value.files)
+  ) {
     return false;
   }
 
@@ -27,16 +32,24 @@ function isMockFileArray(value: unknown): value is MockFileArray {
       'url' in file &&
       typeof file.url === 'string' &&
       'type' in file &&
-      typeof file.type === 'string'
+      typeof file.type === 'string',
   );
 }
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CueFileDropzone, OptionsPanel, PlaylistOutput, SavedSets, SearchBar, TrackList, Waveform],
+  imports: [
+    CueFileDropzone,
+    OptionsPanel,
+    PlaylistOutput,
+    SavedSets,
+    SearchBar,
+    TrackList,
+    Waveform,
+  ],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrl: './app.scss',
 })
 export class App {
   private readonly savedSets = inject(SavedSetsService);
@@ -61,12 +74,10 @@ export class App {
       this.cueFile() !== null &&
       this.audioFile() !== null &&
       this.playlist().length > 0 &&
-      this.savedSets.status() === 'ready'
+      this.savedSets.status() === 'ready',
   );
   public readonly savedSetsReady = computed(() => this.savedSets.status() === 'ready');
-  public readonly loadedSetsList = computed(() => 
-    this.savedSets.sets().map(set => set.name)
-  );
+  public readonly loadedSetsList = computed(() => this.savedSets.sets().map((set) => set.name));
 
   public async onFilesSelected(files: File[]): Promise<void> {
     this.isLoadingFiles.set(true);
@@ -74,7 +85,7 @@ export class App {
     this.resetTracks();
     const cueFile = files.find((file) => /\.(cue|txt)$/i.test(file.name));
     const audioFiles = files.filter((file) =>
-      /\.(wav|mp3|aiff|aif|flac|ogg|m4a|aac|opus|wma)$/i.test(file.name)
+      /\.(wav|mp3|aiff|aif|flac|ogg|m4a|aac|opus|wma)$/i.test(file.name),
     );
 
     if (!cueFile && audioFiles.length > 0) {
@@ -131,7 +142,11 @@ export class App {
     this.errorMessage.set('');
 
     try {
-      const set = await this.savedSets.save(cueFile.name.replace(/\.[^.]+$/, ''), cueFile, audioFile);
+      const set = await this.savedSets.save(
+        cueFile.name.replace(/\.[^.]+$/, ''),
+        cueFile,
+        audioFile,
+      );
       // Ignore the result if different files were loaded while the upload was running.
       if (this.audioFile() === audioFile) {
         this.savedSetId.set(set.id);
@@ -174,7 +189,7 @@ export class App {
           }
 
           return new File([await response.blob()], name, { type });
-        })
+        }),
       );
 
       await this.onFilesSelected(files);
@@ -225,15 +240,15 @@ export class App {
       tracks.map((track) => ({
         time: this.cueTimeToSeconds(track.playTime),
         title: track.title,
-        artist: track.artist
-      }))
+        artist: track.artist,
+      })),
     );
 
     const lastTrackTime = tracks[tracks.length - 1].playTime;
     const removeLeadingZeroMinutes = lastTrackTime.split(':')[0] === '00';
     const parsedTracks = tracks.map((track) => ({
       ...track,
-      playTime: removeLeadingZeroMinutes ? track.playTime.substring(3) : track.playTime
+      playTime: removeLeadingZeroMinutes ? track.playTime.substring(3) : track.playTime,
     }));
 
     this.playlist.set(this.dedupeTracks(parsedTracks));
@@ -246,7 +261,8 @@ export class App {
 
     for (const track of tracks) {
       const isDuplicate = uniqueTracks.some(
-        (existingTrack) => existingTrack.title === track.title && existingTrack.artist === track.artist
+        (existingTrack) =>
+          existingTrack.title === track.title && existingTrack.artist === track.artist,
       );
 
       if (!isDuplicate) {
