@@ -2,11 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Waveform } from './waveform';
 import type { CueMarker } from '../interfaces/set-track';
 
-class MockAudioContext {
-  public state: AudioContextState = 'running';
-  public close = vi.fn(async () => {
-    this.state = 'closed';
-  });
+class MockOfflineAudioContext {
   public decodeAudioData = vi.fn(async () => ({
     duration: 60,
     getChannelData: () => Float32Array.from([0, 0.5, -1, 0]),
@@ -34,7 +30,7 @@ describe('Waveform', () => {
       configurable: true,
       value: vi.fn(),
     });
-    vi.stubGlobal('AudioContext', MockAudioContext);
+    vi.stubGlobal('OfflineAudioContext', MockOfflineAudioContext);
 
     await TestBed.configureTestingModule({
       imports: [Waveform],
@@ -126,6 +122,35 @@ describe('Waveform', () => {
       expect(saved.textContent).toContain('Saved');
       expect(saved.disabled).toBe(true);
     });
+  });
+
+  it('renders the decoded waveform and duration after loading', async () => {
+    const fixture = await createWaveform();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.duration()).toBe(60);
+    expect(fixture.componentInstance.peaks()).toEqual([0, 0.5, 1, 0]);
+    expect(fixture.componentInstance.isLoading()).toBe(false);
+    const path = fixture.nativeElement.querySelector('.bars-main') as SVGPathElement;
+    expect(path.getAttribute('d')).toContain('v66');
+    expect(path.getAttribute('d')).not.toContain('NaN');
+  });
+
+  it('reports an analysis failure without replacing the current player', async () => {
+    const fixture = await createWaveform();
+    const source = fixture.componentInstance.audioSource();
+    vi.stubGlobal('OfflineAudioContext', class {
+      decodeAudioData = vi.fn().mockRejectedValue(new Error('Invalid audio'));
+    });
+    const file = new File(['broken'], 'broken.mp3');
+    Object.defineProperty(file, 'arrayBuffer', { value: vi.fn().mockResolvedValue(new ArrayBuffer(4)) });
+    fixture.componentRef.setInput('file', file);
+    fixture.detectChanges();
+    await vi.waitFor(() =>
+      expect(fixture.componentInstance.errorMessage()).toContain('Invalid audio'),
+    );
+    expect(fixture.componentInstance.audioSource()).toBe(source);
+    expect(fixture.componentInstance.isLoading()).toBe(false);
   });
 
   it('keeps the current player while a new file is being analyzed', async () => {

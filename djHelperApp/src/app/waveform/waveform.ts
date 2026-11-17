@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { PlaybackOptionsService } from '../options-panel/playback-options.service';
 import { PlaybackIcon } from './playback-icon';
@@ -24,13 +25,15 @@ export class Waveform {
   // Constructor
   public constructor() {
     inject(DestroyRef).onDestroy(() => {
+      this.loadId++;
       this.fadeId++;
       this.stopPlaybackFrame();
       this.revokeAudioSource();
     });
 
     effect(() => {
-      void this.loadWaveform(this.file());
+      const file = this.file();
+      untracked(() => void this.loadWaveform(file));
     });
   }
   protected readonly playbackOptions = inject(PlaybackOptionsService);
@@ -69,41 +72,33 @@ export class Waveform {
     this.isLoading.set(true);
 
     try {
-      // Load the file without complex AudioContext processing
-      // This avoids the Safari mobile issues while still providing playback
       const arrayBuffer = await file.arrayBuffer();
-      
       if (loadId !== this.loadId) {
         return;
       }
 
-      // Create a simple waveform visualization without decoding
-      // Full waveform analysis can be done server-side later
-      const basicPeaks = new Array(this.barCount).fill(0.7);
+      const audioContext = new OfflineAudioContext(1, 1, 44100);
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      const channelData = audioBuffer.getChannelData(0);
+      if (channelData.length === 0 || !Number.isFinite(audioBuffer.duration) || audioBuffer.duration <= 0) {
+        throw new Error('Audio contains no samples');
+      }
+      const peaks = this.extractPeaks(channelData, this.barCount);
+      if (loadId !== this.loadId) {
+        return;
+      }
 
+      const audioUrl = URL.createObjectURL(file);
       this.stopPlaybackFrame();
       this.revokeAudioSource();
-      this.currentAudioUrl = URL.createObjectURL(file);
+      this.currentAudioUrl = audioUrl;
       this.audioSource.set(this.currentAudioUrl);
       this.activeFile.set(file);
       this.isPlaying.set(false);
       this.currentTime.set(0);
       this.playbackError.set('');
-      this.peaks.set(basicPeaks);
-
-      // Get duration from the audio element metadata
-      const audio = new Audio();
-      audio.onloadedmetadata = () => {
-        if (loadId === this.loadId) {
-          this.duration.set(audio.duration);
-        }
-      };
-      audio.onerror = () => {
-        if (loadId === this.loadId && !this.errorMessage()) {
-          this.errorMessage.set(`Unable to load audio file: ${file.name}`);
-        }
-      };
-      audio.src = this.currentAudioUrl;
+      this.duration.set(audioBuffer.duration);
+      this.peaks.set(peaks);
     } catch (error) {
       if (loadId === this.loadId) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -114,6 +109,22 @@ export class Waveform {
         this.isLoading.set(false);
       }
     }
+  }
+
+  private extractPeaks(channelData: Float32Array, barCount: number): number[] {
+    const peaks: number[] = [];
+    const count = Math.min(channelData.length, barCount);
+    for (let i = 0; i < count; i++) {
+      let sum = 0;
+      const start = Math.floor((i * channelData.length) / count);
+      const end = Math.floor(((i + 1) * channelData.length) / count);
+      for (let j = start; j < end; j++) {
+        sum += channelData[j] * channelData[j];
+      }
+      peaks.push(Math.sqrt(sum / (end - start)));
+    }
+    const max = Math.max(...peaks, Number.EPSILON);
+    return peaks.map((p) => p / max);
   }
 
   // Ramps the element volume; a newer fade cancels an older one. Resolves false when superseded.
