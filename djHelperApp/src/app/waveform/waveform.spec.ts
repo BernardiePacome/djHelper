@@ -139,11 +139,16 @@ describe('Waveform', () => {
   it('reports an analysis failure without replacing the current player', async () => {
     const fixture = await createWaveform();
     const source = fixture.componentInstance.audioSource();
-    vi.stubGlobal('OfflineAudioContext', class {
-      decodeAudioData = vi.fn().mockRejectedValue(new Error('Invalid audio'));
-    });
+    vi.stubGlobal(
+      'OfflineAudioContext',
+      class {
+        decodeAudioData = vi.fn().mockRejectedValue(new Error('Invalid audio'));
+      },
+    );
     const file = new File(['broken'], 'broken.mp3');
-    Object.defineProperty(file, 'arrayBuffer', { value: vi.fn().mockResolvedValue(new ArrayBuffer(4)) });
+    Object.defineProperty(file, 'arrayBuffer', {
+      value: vi.fn().mockResolvedValue(new ArrayBuffer(4)),
+    });
     fixture.componentRef.setInput('file', file);
     fixture.detectChanges();
     await vi.waitFor(() =>

@@ -80,7 +80,11 @@ export class Waveform {
       const audioContext = new OfflineAudioContext(1, 1, 44100);
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       const channelData = audioBuffer.getChannelData(0);
-      if (channelData.length === 0 || !Number.isFinite(audioBuffer.duration) || audioBuffer.duration <= 0) {
+      if (
+        channelData.length === 0 ||
+        !Number.isFinite(audioBuffer.duration) ||
+        audioBuffer.duration <= 0
+      ) {
         throw new Error('Audio contains no samples');
       }
       const peaks = this.extractPeaks(channelData, this.barCount);
