@@ -7,6 +7,7 @@ import {
   input,
   output,
   signal,
+  untracked,
 } from '@angular/core';
 import { PlaybackOptionsService } from '../options-panel/playback-options.service';
 import { PlaybackIcon } from './playback-icon';
@@ -24,13 +25,15 @@ export class Waveform {
   // Constructor
   public constructor() {
     inject(DestroyRef).onDestroy(() => {
+      this.loadId++;
       this.fadeId++;
       this.stopPlaybackFrame();
       this.revokeAudioSource();
     });
 
     effect(() => {
-      void this.loadWaveform(this.file());
+      const file = this.file();
+      untracked(() => void this.loadWaveform(file));
     });
   }
   protected readonly playbackOptions = inject(PlaybackOptionsService);
@@ -66,97 +69,66 @@ export class Waveform {
       return;
     }
 
-    // Warn if file is very large (> 500MB) - can cause memory issues on mobile
-    if (file.size > 500 * 1024 * 1024) {
-      if (loadId === this.loadId) {
-        this.errorMessage.set(
-          `File is too large (${(file.size / 1024 / 1024).toFixed(0)}MB). Please use a file under 500MB.`,
-        );
-      }
-      return;
-    }
-
     this.isLoading.set(true);
 
-    let audioContext: AudioContext | undefined;
-
     try {
-      // Create AudioContext with a try-catch to handle Safari mobile restrictions
-      try {
-        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      } catch (error) {
-        throw new Error('AudioContext not available. Please check browser permissions.');
-      }
-
-      // Check if context resumed (required on some browsers)
-      if (audioContext.state === 'suspended') {
-        try {
-          await audioContext.resume();
-        } catch {
-          // Silently continue - some browsers don't support resume
-        }
-      }
-
       const arrayBuffer = await file.arrayBuffer();
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
       if (loadId !== this.loadId) {
         return;
       }
 
-      const samples = audioBuffer.getChannelData(0);
-      const bucketSize = Math.max(1, Math.ceil(samples.length / this.barCount));
-      const levels: number[] = [];
-
-      // RMS per bucket keeps the loudness variation that a plain peak flattens out on loud masters.
-      for (let start = 0; start < samples.length; start += bucketSize) {
-        let sumOfSquares = 0;
-        const end = Math.min(start + bucketSize, samples.length);
-        for (let index = start; index < end; index++) {
-          sumOfSquares += samples[index] * samples[index];
-        }
-        levels.push(Math.sqrt(sumOfSquares / (end - start)));
+      const audioContext = new OfflineAudioContext(1, 1, 44100);
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      const channelData = audioBuffer.getChannelData(0);
+      if (
+        channelData.length === 0 ||
+        !Number.isFinite(audioBuffer.duration) ||
+        audioBuffer.duration <= 0
+      ) {
+        throw new Error('Audio contains no samples');
+      }
+      const peaks = this.extractPeaks(channelData, this.barCount);
+      if (loadId !== this.loadId) {
+        return;
       }
 
-      const loudest = Math.max(...levels, Number.EPSILON);
-      const waveformPeaks = levels.map((level) => level / loudest);
-
+      const audioUrl = URL.createObjectURL(file);
       this.stopPlaybackFrame();
       this.revokeAudioSource();
-      this.currentAudioUrl = URL.createObjectURL(file);
+      this.currentAudioUrl = audioUrl;
       this.audioSource.set(this.currentAudioUrl);
       this.activeFile.set(file);
       this.isPlaying.set(false);
       this.currentTime.set(0);
       this.playbackError.set('');
-      this.peaks.set(waveformPeaks);
       this.duration.set(audioBuffer.duration);
+      this.peaks.set(peaks);
     } catch (error) {
       if (loadId === this.loadId) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        // Provide more helpful error messages for common issues
-        let userMessage = `Unable to decode ${file.name}`;
-        if (errorMsg.includes('not supported') || errorMsg.includes('NotSupportedError')) {
-          userMessage += ': Unsupported audio format. Try WAV, MP3, or AIFF.';
-        } else if (errorMsg.includes('memory') || errorMsg.includes('out of memory')) {
-          userMessage += ': File is too large for this device. Try a shorter audio file.';
-        } else {
-          userMessage += `. Try a browser-supported audio format such as WAV or MP3.`;
-        }
-        this.errorMessage.set(userMessage);
+        this.errorMessage.set(`Unable to load ${file.name}: ${errorMsg}`);
       }
     } finally {
-      if (audioContext && audioContext.state !== 'closed') {
-        try {
-          await audioContext.close();
-        } catch {
-          // Ignore errors when closing context
-        }
-      }
       if (loadId === this.loadId) {
         this.isLoading.set(false);
       }
     }
+  }
+
+  private extractPeaks(channelData: Float32Array, barCount: number): number[] {
+    const peaks: number[] = [];
+    const count = Math.min(channelData.length, barCount);
+    for (let i = 0; i < count; i++) {
+      let sum = 0;
+      const start = Math.floor((i * channelData.length) / count);
+      const end = Math.floor(((i + 1) * channelData.length) / count);
+      for (let j = start; j < end; j++) {
+        sum += channelData[j] * channelData[j];
+      }
+      peaks.push(Math.sqrt(sum / (end - start)));
+    }
+    const max = Math.max(...peaks, Number.EPSILON);
+    return peaks.map((p) => p / max);
   }
 
   // Ramps the element volume; a newer fade cancels an older one. Resolves false when superseded.
