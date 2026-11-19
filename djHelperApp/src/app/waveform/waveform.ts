@@ -14,6 +14,7 @@ import type { ElementRef } from '@angular/core';
 import { PlaybackOptionsService } from '../options-panel/playback-options.service';
 import { isSameFile } from '../same-file';
 import { ActivePlayer } from './active-player';
+import { analyzeMp3 } from './mp3-waveform';
 import { PlaybackIcon } from './playback-icon';
 import { TrackTooltipText } from './track-tooltip-text';
 import type { CueMarker, PositionedCueMarker } from '../interfaces/set-track';
@@ -86,23 +87,31 @@ export class Waveform {
     this.isLoading.set(true);
 
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      if (loadId !== this.loadId) {
-        return;
-      }
+      let analysis: { peaks: number[]; duration: number } | null;
+      if (/\.mp3$/i.test(file.name)) {
+        analysis = await analyzeMp3(file, this.barCount, () => loadId === this.loadId);
+      } else {
+        const arrayBuffer = await file.arrayBuffer();
+        if (loadId !== this.loadId) {
+          return;
+        }
 
-      const audioContext = new OfflineAudioContext(1, 1, 44100);
-      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-      const channelData = audioBuffer.getChannelData(0);
-      if (
-        channelData.length === 0 ||
-        !Number.isFinite(audioBuffer.duration) ||
-        audioBuffer.duration <= 0
-      ) {
-        throw new Error('Audio contains no samples');
+        const audioContext = new OfflineAudioContext(1, 1, 44100);
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        const channelData = audioBuffer.getChannelData(0);
+        if (
+          channelData.length === 0 ||
+          !Number.isFinite(audioBuffer.duration) ||
+          audioBuffer.duration <= 0
+        ) {
+          throw new Error('Audio contains no samples');
+        }
+        analysis = {
+          peaks: this.extractPeaks(channelData, this.barCount),
+          duration: audioBuffer.duration,
+        };
       }
-      const peaks = this.extractPeaks(channelData, this.barCount);
-      if (loadId !== this.loadId) {
+      if (!analysis || loadId !== this.loadId) {
         return;
       }
 
@@ -115,8 +124,8 @@ export class Waveform {
       this.isPlaying.set(false);
       this.currentTime.set(0);
       this.playbackError.set('');
-      this.duration.set(audioBuffer.duration);
-      this.peaks.set(peaks);
+      this.duration.set(analysis.duration);
+      this.peaks.set(analysis.peaks);
     } catch (error) {
       if (loadId === this.loadId) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';

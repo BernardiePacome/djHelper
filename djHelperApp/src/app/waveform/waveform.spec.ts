@@ -146,7 +146,7 @@ describe('Waveform', () => {
         decodeAudioData = vi.fn().mockRejectedValue(new Error('Invalid audio'));
       },
     );
-    const file = new File(['broken'], 'broken.mp3');
+    const file = new File(['broken'], 'broken.wav');
     Object.defineProperty(file, 'arrayBuffer', {
       value: vi.fn().mockResolvedValue(new ArrayBuffer(4)),
     });
