@@ -3,6 +3,8 @@ A DJ helper app for converting rekordBox cue files into clean playlist text.
 
 This project has been migrated to Angular 21 and provides a drag-and-drop importer for `.cue` files, deduplication, and copy-ready playlist output.
 
+MP3 waveforms are analyzed locally in small chunks to reduce memory use on mobile devices. Long recordings may take some time to analyze.
+
 ## Full stack with Docker
 
 ```bash
