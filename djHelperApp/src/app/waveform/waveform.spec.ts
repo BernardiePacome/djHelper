@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { PlaybackOptionsService } from '../options-panel/playback-options.service';
 import { Waveform } from './waveform';
 import type { CueMarker } from '../interfaces/set-track';
 
@@ -212,6 +213,24 @@ describe('Waveform', () => {
     await component.togglePlayback(playingAudio);
 
     expect(playingAudio.pause).toHaveBeenCalledOnce();
+  });
+
+  it('pauses the playing waveform when another one starts', async () => {
+    TestBed.inject(PlaybackOptionsService).fadeSeconds.set(0);
+    const playing = await createWaveform();
+    const other = await createWaveform();
+    const element = (playing.nativeElement as HTMLElement).querySelector('audio')!;
+    Object.defineProperty(element, 'paused', { configurable: true, value: false });
+    const pause = vi.spyOn(element, 'pause').mockImplementation(() => undefined);
+
+    other.componentInstance.onAudioPlay(
+      createAudio({ paused: false, duration: 60, currentTime: 0 }),
+    );
+    other.componentInstance.onAudioPause();
+    playing.detectChanges();
+    await playing.whenStable();
+
+    expect(pause).toHaveBeenCalledOnce();
   });
 
   it('reports playback failures', async () => {

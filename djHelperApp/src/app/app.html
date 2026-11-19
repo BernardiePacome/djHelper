@@ -17,27 +17,46 @@
     </header>
     <p>for rekordBox</p>
     <app-cue-file-dropzone
-      [fileName]="fileName()"
-      [audioFileName]="audioFile()?.name ?? ''"
       [errorMessage]="errorMessage()"
       (filesSelected)="onFilesSelected($event)"
-      (clearRequested)="clearPlaylist()"
     />
 
     @if (isLoadingFiles()) {
       <p class="loading-message" role="status" aria-live="polite">Loading files…</p>
-    } @else {
-      @if (audioFile(); as selectedAudio) {
-        <app-waveform
-          [file]="selectedAudio"
-          [trackMarkers]="trackMarkers()"
-          [canSave]="canSaveSet()"
-          [isSaving]="isSavingSet()"
-          [isSaved]="isCurrentSetSaved()"
-          (saveRequested)="saveSet()"
-        />
-        <app-options-panel />
-      }
+    }
+    @if (loadedMixes().length > 0) {
+      <section class="loaded-sets" aria-label="Loaded sets">
+        @if (hasAudio()) {
+          <app-options-panel />
+        }
+        @for (mix of loadedMixes(); track mix.id) {
+          <article class="loaded-set">
+            <div class="loaded-set-header">
+              <span class="loaded-set-name"
+                >{{ mix.cueFile?.name }}{{ mix.cueFile && mix.audioFile ? ' · ' : ''
+                }}{{ mix.audioFile?.name }}</span
+              >
+              <button type="button" class="remove-button" (click)="removeMix(mix.id)">
+                Remove
+              </button>
+            </div>
+            @if (mix.audioFile; as audioFile) {
+              <app-waveform
+                [file]="audioFile"
+                [trackMarkers]="mix.trackMarkers"
+                [canSave]="canSave(mix)"
+                [isSaving]="mix.isSaving"
+                [isSaved]="isSaved(mix)"
+                (saveRequested)="saveSet(mix.id)"
+              />
+            }
+            @if (mix.playlist.length > 0) {
+              <app-track-list [tracks]="mix.playlist" />
+              <app-playlist-output [tracks]="mix.playlist" />
+            }
+          </article>
+        }
+      </section>
     }
   </section>
 
@@ -54,13 +73,6 @@
 
     <section>
       <app-search-bar (setLoaded)="onSavedSetLoaded($event)" />
-    </section>
-
-    <section>
-      @if (playlist().length > 0) {
-        <app-track-list [tracks]="playlist()" />
-        <app-playlist-output [tracks]="playlist()" />
-      }
     </section>
 
     <app-saved-sets (setLoaded)="onSavedSetLoaded($event)" />

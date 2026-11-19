@@ -39,7 +39,7 @@ describe('App', () => {
     }
   });
 
-  it('hides other components while cue and audio files are loading', async () => {
+  it('hides search and saved sets while loading but keeps loaded sets on screen', async () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     const cueText =
@@ -60,6 +60,7 @@ describe('App', () => {
     expect(app.isLoadingFiles()).toBe(false);
     expect(fixture.nativeElement.querySelector('app-search-bar')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('app-saved-sets')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-track-list')).toBeTruthy();
   });
 });
 
@@ -95,7 +96,8 @@ describe('App saved sets', () => {
 
   const loadFiles = async (app: App) => {
     app.onFilesSelected([new File([cueText], 'mix.cue'), new File(['audio'], 'mix.mp3')]);
-    await vi.waitFor(() => expect(app.playlist()).toHaveLength(1));
+    await vi.waitFor(() => expect(app.loadedMixes()[0]?.playlist).toHaveLength(1));
+    return app.loadedMixes()[0];
   };
 
   beforeEach(async () => {
@@ -117,16 +119,14 @@ describe('App saved sets', () => {
 
   it('can only save once a cue and its audio are loaded and the server is reachable', async () => {
     const app = createApp();
-    expect(app.canSaveSet()).toBe(false);
+    app.onFilesSelected([new File(['audio'], 'solo.mp3')]);
+    expect(app.canSave(app.loadedMixes()[0])).toBe(false);
 
-    app.onFilesSelected([new File(['audio'], 'mix.mp3')]);
-    expect(app.canSaveSet()).toBe(false);
-
-    await loadFiles(app);
-    expect(app.canSaveSet()).toBe(true);
+    const mix = await loadFiles(app);
+    expect(app.canSave(mix)).toBe(true);
 
     status.set('unavailable');
-    expect(app.canSaveSet()).toBe(false);
+    expect(app.canSave(mix)).toBe(false);
   });
 
   it('saves the loaded cue and audio under the cue file name', async () => {
@@ -135,25 +135,25 @@ describe('App saved sets', () => {
       return savedSet;
     });
     const app = createApp();
-    await loadFiles(app);
+    const mix = await loadFiles(app);
 
-    await app.saveSet();
+    await app.saveSet(mix.id);
 
-    expect(service.save).toHaveBeenCalledWith('mix', app.cueFile(), app.audioFile());
-    expect(app.isCurrentSetSaved()).toBe(true);
-    expect(app.isSavingSet()).toBe(false);
+    expect(service.save).toHaveBeenCalledWith('mix', mix.cueFile, mix.audioFile);
+    expect(app.isSaved(app.loadedMixes()[0])).toBe(true);
+    expect(app.loadedMixes()[0].isSaving).toBe(false);
   });
 
   it('reports a failed save and allows retrying', async () => {
     service.save.mockRejectedValue(new Error('Storage quota exceeded'));
     const app = createApp();
-    await loadFiles(app);
+    const mix = await loadFiles(app);
 
-    await app.saveSet();
+    await app.saveSet(mix.id);
 
     expect(app.errorMessage()).toBe('Unable to save set: Storage quota exceeded');
-    expect(app.isCurrentSetSaved()).toBe(false);
-    expect(app.isSavingSet()).toBe(false);
+    expect(app.isSaved(app.loadedMixes()[0])).toBe(false);
+    expect(app.loadedMixes()[0].isSaving).toBe(false);
   });
 
   it('loads a saved set into the app and marks it as already saved', async () => {
@@ -164,10 +164,22 @@ describe('App saved sets', () => {
       set: savedSet,
       files: [new File([cueText], 'mix.cue'), new File(['audio'], 'mix.mp3')],
     });
-    await vi.waitFor(() => expect(app.playlist()).toHaveLength(1));
+    await vi.waitFor(() => expect(app.loadedMixes()).toHaveLength(1));
 
-    expect(app.audioFile()?.name).toBe('mix.mp3');
-    expect(app.isCurrentSetSaved()).toBe(true);
+    expect(app.loadedMixes()[0].audioFile?.name).toBe('mix.mp3');
+    expect(app.isSaved(app.loadedMixes()[0])).toBe(true);
+  });
+
+  it('does not load a saved set twice', async () => {
+    sets.set([savedSet]);
+    const app = createApp();
+    const files = () => [new File([cueText], 'mix.cue'), new File(['audio'], 'mix.mp3')];
+
+    await app.onSavedSetLoaded({ set: savedSet, files: files() });
+    const [first] = app.loadedMixes();
+    await app.onSavedSetLoaded({ set: savedSet, files: files() });
+
+    expect(app.loadedMixes()).toEqual([first]);
   });
 
   it('pairs a renamed saved audio file with its cue even if the cue references another name', async () => {
@@ -175,34 +187,69 @@ describe('App saved sets', () => {
     const audio = new File(['audio'], 'set name.mp3');
 
     app.onSavedSetLoaded({ set: savedSet, files: [new File([cueText], 'set name.cue'), audio] });
-    await vi.waitFor(() => expect(app.playlist()).toHaveLength(1));
+    await vi.waitFor(() => expect(app.loadedMixes()).toHaveLength(1));
 
-    expect(app.audioFile()).toBe(audio);
+    expect(app.loadedMixes()[0].audioFile).toBe(audio);
   });
 
   it('keeps the current audio file while a cue file is loading', async () => {
     const app = createApp();
     const audio = new File(['audio'], 'mix.mp3');
     app.onFilesSelected([audio]);
+    const [audioOnly] = app.loadedMixes();
 
     app.onFilesSelected([new File([cueText], 'other.cue')]);
-    expect(app.audioFile()).toBe(audio);
+    expect(app.loadedMixes()[0].audioFile).toBe(audio);
 
-    await vi.waitFor(() => expect(app.playlist()).toHaveLength(1));
-    expect(app.audioFile()).toBe(audio);
+    await vi.waitFor(() => expect(app.loadedMixes()[0].playlist).toHaveLength(1));
+    expect(app.loadedMixes()).toHaveLength(1);
+    expect(app.loadedMixes()[0].id).toBe(audioOnly.id);
+    expect(app.loadedMixes()[0].audioFile).toBe(audio);
+  });
+
+  it('adds a new loaded set for another audio file and keeps the existing one', async () => {
+    const app = createApp();
+    const playing = new File(['audio'], 'first.mp3');
+    app.onFilesSelected([playing]);
+    const [firstMix] = app.loadedMixes();
+
+    app.onFilesSelected([new File(['other'], 'second.mp3')]);
+
+    expect(app.loadedMixes().map((mix) => mix.audioFile?.name)).toEqual([
+      'second.mp3',
+      'first.mp3',
+    ]);
+    expect(app.loadedMixes()[1]).toBe(firstMix);
+  });
+
+  it('ignores an audio file that is already loaded', () => {
+    const app = createApp();
+    app.onFilesSelected([new File(['audio'], 'mix.mp3', { lastModified: 1 })]);
+
+    app.onFilesSelected([new File(['audio'], 'mix.mp3', { lastModified: 1 })]);
+
+    expect(app.loadedMixes()).toHaveLength(1);
+  });
+
+  it('removes a loaded set', () => {
+    const app = createApp();
+    app.onFilesSelected([new File(['audio'], 'mix.mp3')]);
+
+    app.removeMix(app.loadedMixes()[0].id);
+
+    expect(app.loadedMixes()).toEqual([]);
   });
 
   it('no longer shows a loaded set as saved once it is deleted', async () => {
     sets.set([savedSet]);
     const app = createApp();
-    app.onSavedSetLoaded({
+    await app.onSavedSetLoaded({
       set: savedSet,
       files: [new File([cueText], 'mix.cue'), new File(['audio'], 'mix.mp3')],
     });
-    await vi.waitFor(() => expect(app.playlist()).toHaveLength(1));
 
     sets.set([]);
 
-    expect(app.isCurrentSetSaved()).toBe(false);
+    expect(app.isSaved(app.loadedMixes()[0])).toBe(false);
   });
 });
