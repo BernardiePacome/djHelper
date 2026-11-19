@@ -8,10 +8,17 @@ import { SavedSetsService } from './saved-sets/saved-sets.service';
 import { SearchBar } from './search-bar/search-bar';
 import { TrackList } from './track-list/track-list';
 import { Waveform } from './waveform/waveform';
+import { isSameFile } from './same-file';
 import { isMockModeUrl } from '../mocks/mock-mode';
 import type { MockFileArray } from './interfaces/mock-file';
+import type { LoadedMix } from './interfaces/loaded-mix';
 import type { LoadedSet } from './interfaces/saved-set';
 import type { SetTrack, CueMarker } from './interfaces/set-track';
+
+interface ParsedCue {
+  playlist: SetTrack[];
+  trackMarkers: CueMarker[];
+}
 
 function isMockFileArray(value: unknown): value is MockFileArray {
   if (
@@ -53,44 +60,42 @@ function isMockFileArray(value: unknown): value is MockFileArray {
 })
 export class App {
   private readonly savedSets = inject(SavedSetsService);
+  private nextMixId = 0;
 
   public readonly isMockMode = isMockModeUrl(new URL(location.href));
-  public readonly fileName = signal('');
   public readonly errorMessage = signal('');
-  public readonly playlist = signal<SetTrack[]>([]);
-  public readonly audioFile = signal<File | null>(null);
-  public readonly trackMarkers = signal<CueMarker[]>([]);
+  // Newest first. Each mix keeps its own player, so loading another one never interrupts playback.
+  public readonly loadedMixes = signal<LoadedMix[]>([]);
+  public readonly hasAudio = computed(() => this.loadedMixes().some((mix) => mix.audioFile));
   public readonly isLoadingMockFiles = signal(false);
   public readonly isLoadingFiles = signal(false);
-  public readonly cueFile = signal<File | null>(null);
-  public readonly isSavingSet = signal(false);
-  public readonly savedSetId = signal<string | null>(null);
-  public readonly isCurrentSetSaved = computed(() => {
-    const id = this.savedSetId();
-    return id !== null && this.savedSets.sets().some((set) => set.id === id);
-  });
-  public readonly canSaveSet = computed(
-    () =>
-      this.cueFile() !== null &&
-      this.audioFile() !== null &&
-      this.playlist().length > 0 &&
-      this.savedSets.status() === 'ready',
-  );
   public readonly savedSetsReady = computed(() => this.savedSets.status() === 'ready');
   public readonly loadedSetsList = computed(() => this.savedSets.sets().map((set) => set.name));
 
-  public async onFilesSelected(files: File[]): Promise<void> {
+  public canSave(mix: LoadedMix): boolean {
+    return (
+      mix.cueFile !== null &&
+      mix.audioFile !== null &&
+      mix.playlist.length > 0 &&
+      this.savedSets.status() === 'ready'
+    );
+  }
+
+  public isSaved(mix: LoadedMix): boolean {
+    const id = mix.savedSetId;
+    return id !== null && this.savedSets.sets().some((set) => set.id === id);
+  }
+
+  public async onFilesSelected(files: File[], savedSetId: string | null = null): Promise<void> {
     this.isLoadingFiles.set(true);
-    // Keep the current audio file so playback is not interrupted while tracks load.
-    this.resetTracks();
+    this.errorMessage.set('');
     const cueFile = files.find((file) => /\.(cue|txt)$/i.test(file.name));
     const audioFiles = files.filter((file) =>
       /\.(wav|mp3|aiff|aif|flac|ogg|m4a|aac|opus|wma)$/i.test(file.name),
     );
 
     if (!cueFile && audioFiles.length > 0) {
-      this.audioFile.set(audioFiles[0]);
-      this.errorMessage.set('');
+      this.upsertMix(audioFiles[0], null, null, savedSetId);
       this.isLoadingFiles.set(false);
       return;
     }
@@ -103,13 +108,9 @@ export class App {
 
     try {
       const content = await this.readFile(cueFile);
-      const currentAudio = this.audioFile();
-      const availableAudioFiles = currentAudio ? [...audioFiles, currentAudio] : audioFiles;
-      this.audioFile.set(this.findAudioFile(availableAudioFiles, content));
-      this.processCueFile(cueFile.name, content);
-      if (this.playlist().length > 0) {
-        this.cueFile.set(cueFile);
-      }
+      const audioFile = this.findAudioFile(audioFiles, content);
+      const cue = this.processCueFile(content);
+      this.upsertMix(audioFile, cueFile, cue, savedSetId);
     } catch {
       this.errorMessage.set(`Unable to read ${cueFile.name}`);
     } finally {
@@ -117,28 +118,57 @@ export class App {
     }
   }
 
-  public clearPlaylist(): void {
-    this.resetTracks();
-    this.audioFile.set(null);
+  public removeMix(mixId: number): void {
+    this.loadedMixes.update((mixes) => mixes.filter((mix) => mix.id !== mixId));
   }
 
-  private resetTracks(): void {
-    this.playlist.set([]);
-    this.fileName.set('');
-    this.errorMessage.set('');
-    this.trackMarkers.set([]);
-    this.cueFile.set(null);
-    this.savedSetId.set(null);
-  }
+  // Reuses the mix that already holds this audio so its player keeps going when a cue is added.
+  private upsertMix(
+    audioFile: File | null,
+    cueFile: File | null,
+    cue: ParsedCue | null,
+    savedSetId: string | null,
+  ): void {
+    const existing = audioFile
+      ? this.loadedMixes().find((mix) => mix.audioFile && isSameFile(mix.audioFile, audioFile))
+      : undefined;
 
-  public async saveSet(): Promise<void> {
-    const cueFile = this.cueFile();
-    const audioFile = this.audioFile();
-    if (!cueFile || !audioFile || this.isSavingSet()) {
+    if (existing) {
+      if (cue) {
+        this.loadedMixes.update((mixes) =>
+          mixes.map((mix) =>
+            mix.id === existing.id ? { ...mix, cueFile, ...cue, savedSetId } : mix,
+          ),
+        );
+      }
       return;
     }
 
-    this.isSavingSet.set(true);
+    if (!audioFile && !cue) {
+      return;
+    }
+
+    const mix: LoadedMix = {
+      id: this.nextMixId++,
+      audioFile,
+      cueFile: cue ? cueFile : null,
+      playlist: cue?.playlist ?? [],
+      trackMarkers: cue?.trackMarkers ?? [],
+      savedSetId: cue ? savedSetId : null,
+      isSaving: false,
+    };
+    this.loadedMixes.update((mixes) => [mix, ...mixes]);
+  }
+
+  public async saveSet(mixId: number): Promise<void> {
+    const mix = this.loadedMixes().find((candidate) => candidate.id === mixId);
+    if (!mix?.cueFile || !mix.audioFile || mix.isSaving) {
+      return;
+    }
+
+    const { cueFile, audioFile } = mix;
+
+    this.patchMix(mixId, { isSaving: true });
     this.errorMessage.set('');
 
     try {
@@ -147,21 +177,34 @@ export class App {
         cueFile,
         audioFile,
       );
-      // Ignore the result if different files were loaded while the upload was running.
-      if (this.audioFile() === audioFile) {
-        this.savedSetId.set(set.id);
-      }
+      // Ignore the result if the mix was removed or given other files while the upload was running.
+      this.loadedMixes.update((mixes) =>
+        mixes.map((candidate) =>
+          candidate.id === mixId &&
+          candidate.cueFile === cueFile &&
+          candidate.audioFile === audioFile
+            ? { ...candidate, savedSetId: set.id }
+            : candidate,
+        ),
+      );
     } catch (error) {
       const details = error instanceof Error ? error.message : 'Unknown error';
       this.errorMessage.set(`Unable to save set: ${details}`);
     } finally {
-      this.isSavingSet.set(false);
+      this.patchMix(mixId, { isSaving: false });
     }
   }
 
+  private patchMix(mixId: number, changes: Partial<LoadedMix>): void {
+    this.loadedMixes.update((mixes) =>
+      mixes.map((mix) => (mix.id === mixId ? { ...mix, ...changes } : mix)),
+    );
+  }
+
   public async onSavedSetLoaded({ set, files }: LoadedSet): Promise<void> {
-    await this.onFilesSelected(files);
-    this.savedSetId.set(set.id);
+    if (!this.loadedMixes().some((mix) => mix.savedSetId === set.id)) {
+      await this.onFilesSelected(files, set.id);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -211,7 +254,8 @@ export class App {
     });
   }
 
-  private findAudioFile(files: File[], cueText: string): File | null {
+  private findAudioFile(droppedAudio: File[], cueText: string): File | null {
+    const loadedAudio = this.loadedMixes().flatMap((mix) => (mix.audioFile ? [mix.audioFile] : []));
     const cueAudioName = cueText.match(/^\s*FILE\s+(?:"([^"]+)"|(\S+))/im);
     const referencedName = (cueAudioName?.[1] ?? cueAudioName?.[2])
       ?.split(/[\\/]/)
@@ -219,30 +263,31 @@ export class App {
       ?.toLocaleLowerCase();
 
     if (referencedName) {
-      const matchedFile = files.find((file) => file.name.toLocaleLowerCase() === referencedName);
+      const matchedFile = [...droppedAudio, ...loadedAudio].find(
+        (file) => file.name.toLocaleLowerCase() === referencedName,
+      );
       if (matchedFile) {
         return matchedFile;
       }
     }
 
-    return files.length === 1 ? files[0] : null;
+    const candidates = droppedAudio.length > 0 ? droppedAudio : loadedAudio;
+    return candidates.length === 1 ? candidates[0] : null;
   }
 
-  private processCueFile(fileName: string, cueText: string): void {
+  private processCueFile(cueText: string): ParsedCue | null {
     const tracks = parseCueTracks(cueText);
 
     if (tracks.length === 0) {
       this.errorMessage.set('Please check the cue file for missing field');
-      return;
+      return null;
     }
 
-    this.trackMarkers.set(
-      tracks.map((track) => ({
-        time: this.cueTimeToSeconds(track.playTime),
-        title: track.title,
-        artist: track.artist,
-      })),
-    );
+    const trackMarkers = tracks.map((track) => ({
+      time: this.cueTimeToSeconds(track.playTime),
+      title: track.title,
+      artist: track.artist,
+    }));
 
     const lastTrackTime = tracks[tracks.length - 1].playTime;
     const removeLeadingZeroMinutes = lastTrackTime.split(':')[0] === '00';
@@ -251,9 +296,7 @@ export class App {
       playTime: removeLeadingZeroMinutes ? track.playTime.substring(3) : track.playTime,
     }));
 
-    this.playlist.set(this.dedupeTracks(parsedTracks));
-    this.fileName.set(fileName);
-    this.errorMessage.set('');
+    return { playlist: this.dedupeTracks(parsedTracks), trackMarkers };
   }
 
   private dedupeTracks(tracks: SetTrack[]): SetTrack[] {

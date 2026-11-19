@@ -8,8 +8,12 @@ import {
   output,
   signal,
   untracked,
+  viewChild,
 } from '@angular/core';
+import type { ElementRef } from '@angular/core';
 import { PlaybackOptionsService } from '../options-panel/playback-options.service';
+import { isSameFile } from '../same-file';
+import { ActivePlayer } from './active-player';
 import { PlaybackIcon } from './playback-icon';
 import { TrackTooltipText } from './track-tooltip-text';
 import type { CueMarker, PositionedCueMarker } from '../interfaces/set-track';
@@ -35,8 +39,18 @@ export class Waveform {
       const file = this.file();
       untracked(() => void this.loadWaveform(file));
     });
+
+    effect(() => {
+      const activeId = this.activePlayer.activeId();
+      const audio = this.audioPlayer()?.nativeElement;
+      if (activeId !== this.clipId && audio && !audio.paused) {
+        untracked(() => void this.fadeOutAndPause(audio));
+      }
+    });
   }
   protected readonly playbackOptions = inject(PlaybackOptionsService);
+  private readonly activePlayer = inject(ActivePlayer);
+  private readonly audioPlayer = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
   private fadeId = 0;
   // Constants
   private readonly tooltipSeparationThreshold = 36;
@@ -64,7 +78,7 @@ export class Waveform {
     this.errorMessage.set('');
 
     const activeFile = this.activeFile();
-    if (activeFile && this.isSameFile(activeFile, file)) {
+    if (activeFile && isSameFile(activeFile, file)) {
       this.isLoading.set(false);
       return;
     }
@@ -163,13 +177,11 @@ export class Waveform {
     await this.fadeTo(audio, 1);
   }
 
-  private isSameFile(first: File, second: File): boolean {
-    return (
-      first === second ||
-      (first.name === second.name &&
-        first.size === second.size &&
-        first.lastModified === second.lastModified)
-    );
+  private async fadeOutAndPause(audio: HTMLAudioElement): Promise<void> {
+    if (await this.fadeTo(audio, 0)) {
+      audio.pause();
+      audio.volume = 1;
+    }
   }
 
   private revokeAudioSource(): void {
@@ -322,10 +334,7 @@ export class Waveform {
   public async togglePlayback(audio: HTMLAudioElement): Promise<void> {
     this.playbackError.set('');
     if (!audio.paused) {
-      if (await this.fadeTo(audio, 0)) {
-        audio.pause();
-        audio.volume = 1;
-      }
+      await this.fadeOutAndPause(audio);
       return;
     }
 
@@ -349,6 +358,7 @@ export class Waveform {
   }
 
   public onAudioPlay(audio: HTMLAudioElement): void {
+    this.activePlayer.activeId.set(this.clipId);
     this.isPlaying.set(true);
     this.updatePlaybackFrame(audio);
   }
