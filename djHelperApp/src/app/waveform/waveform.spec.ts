@@ -285,6 +285,25 @@ describe('Waveform', () => {
     expect(component.currentTime()).toBe(50);
   });
 
+  it('seeks to a playlist transition while preserving playback', async () => {
+    TestBed.inject(PlaybackOptionsService).fadeSeconds.set(0);
+    const fixture = await createWaveform();
+    fixture.detectChanges();
+    const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
+    Object.defineProperty(audio, 'paused', { configurable: true, value: false });
+    const pause = vi.spyOn(audio, 'pause').mockImplementation(() => undefined);
+
+    await fixture.componentInstance.seekToTime(30);
+
+    expect(audio.currentTime).toBe(30);
+    expect(fixture.componentInstance.currentTime()).toBe(30);
+    expect(audio.volume).toBe(1);
+    expect(pause).not.toHaveBeenCalled();
+
+    await fixture.componentInstance.seekToTime(61);
+    expect(audio.currentTime).toBe(30);
+  });
+
   it('skips to the nearest previous or next cue', async () => {
     const component = (await createWaveform()).componentInstance;
     component.duration.set(60);

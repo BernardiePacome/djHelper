@@ -63,7 +63,23 @@ h2 {
 }
 
 .track-time {
+  min-height: 44px;
+  padding: 4px 8px;
+  border: 1px solid rgba(138, 164, 255, 0.4);
+  border-radius: 8px;
+  background: transparent;
   color: #8aa4ff;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #a9bcff;
+    outline-offset: 2px;
+  }
 }
 
 @media (max-width: 600px) {

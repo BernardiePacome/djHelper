@@ -42,6 +42,7 @@
             </div>
             @if (mix.audioFile; as audioFile) {
               <app-waveform
+                #waveform
                 [file]="audioFile"
                 [trackMarkers]="mix.trackMarkers"
                 [canSave]="canSave(mix)"
@@ -49,9 +50,19 @@
                 [isSaved]="isSaved(mix)"
                 (saveRequested)="saveSet(mix.id)"
               />
+              @if (mix.playlist.length > 0) {
+                <app-track-list
+                  [tracks]="mix.playlist"
+                  [seekableMarkers]="waveform.visibleTrackMarkers()"
+                  (seekRequested)="waveform.seekToTime($event)"
+                />
+              }
+            } @else {
+              @if (mix.playlist.length > 0) {
+                <app-track-list [tracks]="mix.playlist" />
+              }
             }
             @if (mix.playlist.length > 0) {
-              <app-track-list [tracks]="mix.playlist" />
               <app-playlist-output [tracks]="mix.playlist" />
             }
           </article>
