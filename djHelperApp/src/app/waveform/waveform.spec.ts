@@ -290,11 +290,40 @@ describe('Waveform', () => {
     component.duration.set(60);
     const audio = createAudio({ paused: true, duration: 60, currentTime: 20 });
 
-    component.skipToCue(audio, 'next');
+    await component.skipToCue(audio, 'next');
     expect(audio.currentTime).toBe(30);
 
-    component.skipToCue(audio, 'previous');
-    expect(audio.currentTime).toBe(10);
+    await component.skipToCue(audio, 'previous');
+    expect(audio.currentTime).toBe(8);
+    expect(component.currentTime()).toBe(8);
+  });
+
+  it('continues to earlier transitions on repeated previous skips', async () => {
+    const component = (await createWaveform()).componentInstance;
+    component.duration.set(60);
+    const audio = createAudio({ paused: true, duration: 60, currentTime: 55 });
+
+    await component.skipToCue(audio, 'previous');
+    expect(audio.currentTime).toBe(48);
+    await component.skipToCue(audio, 'previous');
+    expect(audio.currentTime).toBe(28);
+    await component.skipToCue(audio, 'previous');
+    expect(audio.currentTime).toBe(8);
+    expect(component.hasPreviousCue()).toBe(false);
+  });
+
+  it('clamps a previous transition near the start to zero', async () => {
+    const fixture = await createWaveform();
+    fixture.componentRef.setInput('trackMarkers', [{ time: 1, artist: 'A', title: 'B' }]);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component.duration.set(60);
+    const audio = createAudio({ paused: true, duration: 60, currentTime: 5 });
+
+    await component.skipToCue(audio, 'previous');
+    expect(audio.currentTime).toBe(0);
+    expect(component.currentTime()).toBe(0);
+    expect(component.hasPreviousCue()).toBe(false);
   });
 
   it('shows, hides, and pins cue marker tooltips', async () => {
