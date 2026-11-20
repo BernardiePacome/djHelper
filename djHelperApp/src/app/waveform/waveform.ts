@@ -56,6 +56,7 @@ export class Waveform {
   // Constants
   private readonly tooltipSeparationThreshold = 36;
   private readonly barCount = 400;
+  private readonly previousCueLeadSeconds = 2;
   private static nextInstanceId = 0;
   protected readonly clipId = `waveform-clip-${Waveform.nextInstanceId++}`;
   // Inputs
@@ -393,8 +394,9 @@ export class Waveform {
       if (wasPlaying && !(await this.fadeTo(audio, 0))) {
         return;
       }
-      audio.currentTime = target;
-      this.currentTime.set(target);
+      audio.currentTime =
+        direction === 'previous' ? Math.max(0, target - this.previousCueLeadSeconds) : target;
+      this.currentTime.set(audio.currentTime);
       this.pinnedMarker.set(null);
       if (wasPlaying) {
         await this.fadeIn(audio);
