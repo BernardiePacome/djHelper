@@ -117,6 +117,70 @@ describe('App saved sets', () => {
     vi.unstubAllGlobals();
   });
 
+  it('seeks only the selected set when its playlist timestamp is clicked', async () => {
+    vi.stubGlobal(
+      'OfflineAudioContext',
+      class {
+        async decodeAudioData() {
+          return { duration: 180, getChannelData: () => Float32Array.from([0, 1]) };
+        }
+      },
+    );
+    const NativeURL = URL;
+    vi.stubGlobal(
+      'URL',
+      class extends NativeURL {
+        static override createObjectURL() {
+          return 'blob:test';
+        }
+        static override revokeObjectURL() {}
+      },
+    );
+    const audio = (name: string) => {
+      const file = new File(['audio'], name);
+      Object.defineProperty(file, 'arrayBuffer', {
+        value: async () => new ArrayBuffer(4),
+      });
+      return file;
+    };
+    const fixture = TestBed.createComponent(App);
+    fixture.componentInstance.loadedMixes.set(
+      [audio('one.wav'), audio('two.wav'), null].map((audioFile, index) => ({
+        id: index,
+        audioFile,
+        cueFile: null,
+        playlist: [{ artist: 'Artist', title: `Song ${index}`, playTime: '02:08' }],
+        trackMarkers: [{ artist: 'Artist', title: `Song ${index}`, time: 128 }],
+        savedSetId: null,
+        isSaving: false,
+      })),
+    );
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const rows = fixture.nativeElement.querySelectorAll(
+      'article.loaded-set',
+    ) as NodeListOf<HTMLElement>;
+    rows.forEach((row) => row.querySelector<HTMLButtonElement>('.collapse-toggle')!.click());
+    fixture.detectChanges();
+
+    expect(rows[1].querySelector<HTMLButtonElement>('.track-time')!.disabled).toBe(true);
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(rows[1].querySelector<HTMLButtonElement>('.track-time')!.disabled).toBe(false);
+    });
+    const first = rows[0].querySelector<HTMLAudioElement>('audio')!;
+    const second = rows[1].querySelector<HTMLAudioElement>('audio')!;
+    const button = rows[1].querySelector<HTMLButtonElement>('.track-time')!;
+    expect(button.disabled).toBe(false);
+    expect(rows[2].querySelector<HTMLButtonElement>('.track-time')!.disabled).toBe(true);
+    button.click();
+
+    expect(first.currentTime).toBe(0);
+    expect(second.currentTime).toBe(128);
+    expect(second.paused).toBe(true);
+  });
+
   it('can only save once a cue and its audio are loaded and the server is reachable', async () => {
     const app = createApp();
     app.onFilesSelected([new File(['audio'], 'solo.mp3')]);

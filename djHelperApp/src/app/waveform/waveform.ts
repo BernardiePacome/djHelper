@@ -378,6 +378,27 @@ export class Waveform {
     this.stopPlaybackFrame();
   }
 
+  public async seekToTime(time: number): Promise<void> {
+    const audio = this.audioPlayer()?.nativeElement;
+    if (!audio || !Number.isFinite(time) || time < 0 || time > this.duration()) {
+      return;
+    }
+    await this.seekToPosition(audio, time);
+  }
+
+  private async seekToPosition(audio: HTMLAudioElement, time: number): Promise<void> {
+    const wasPlaying = !audio.paused;
+    if (wasPlaying && !(await this.fadeTo(audio, 0))) {
+      return;
+    }
+    audio.currentTime = time;
+    this.currentTime.set(audio.currentTime);
+    this.pinnedMarker.set(null);
+    if (wasPlaying) {
+      await this.fadeIn(audio);
+    }
+  }
+
   public async skipToCue(audio: HTMLAudioElement, direction: 'previous' | 'next'): Promise<void> {
     if (!Number.isFinite(audio.duration)) {
       return;
@@ -390,17 +411,10 @@ export class Waveform {
       .sort((first, second) => (direction === 'next' ? first - second : second - first))[0];
 
     if (target !== undefined) {
-      const wasPlaying = !audio.paused;
-      if (wasPlaying && !(await this.fadeTo(audio, 0))) {
-        return;
-      }
-      audio.currentTime =
-        direction === 'previous' ? Math.max(0, target - this.previousCueLeadSeconds) : target;
-      this.currentTime.set(audio.currentTime);
-      this.pinnedMarker.set(null);
-      if (wasPlaying) {
-        await this.fadeIn(audio);
-      }
+      await this.seekToPosition(
+        audio,
+        direction === 'previous' ? Math.max(0, target - this.previousCueLeadSeconds) : target,
+      );
     }
   }
 
