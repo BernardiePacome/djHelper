@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, output, signal } from '@angular/core';
+import { Component, inject, input, output, signal } from '@angular/core';
 import { SavedSetsService } from './saved-sets.service';
 import type { SavedSet, LoadedSet } from '../interfaces/saved-set';
 
@@ -25,6 +25,7 @@ export function formatBytes(bytes: number): string {
 export class SavedSets {
   private readonly savedSets = inject(SavedSetsService);
 
+  public readonly loadedSetIds = input<readonly string[]>([]);
   public readonly setLoaded = output<LoadedSet>();
 
   public readonly sets = this.savedSets.sets;

@@ -6,6 +6,11 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   background: rgba(15, 20, 30, 0.8);
+  transition: background-color 0.2s ease;
+}
+
+.waveform-panel.is-playing {
+  background: rgba(35, 45, 65, 0.9);
 }
 
 .waveform-header {

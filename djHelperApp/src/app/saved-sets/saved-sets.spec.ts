@@ -81,6 +81,31 @@ describe('SavedSets', () => {
     expect(emitted).toHaveBeenCalledWith({ set: savedSet, files });
   });
 
+  it('disables only loaded sets and allows loading again when removed', () => {
+    sets.set([savedSet, { ...savedSet, id: 's2', name: 'Another set' }]);
+    const fixture = create();
+    fixture.componentRef.setInput('loadedSetIds', ['s1']);
+    fixture.detectChanges();
+
+    const buttons = (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>(
+      '.primary-button',
+    );
+    expect(buttons[0].textContent?.trim()).toBe('Loaded ✓');
+    expect(buttons[0].disabled).toBe(true);
+    expect(buttons[1].textContent?.trim()).toBe('Load');
+    expect(buttons[1].disabled).toBe(false);
+
+    fixture.componentRef.setInput('loadedSetIds', []);
+    fixture.detectChanges();
+    const loadButtons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.primary-button'),
+    );
+    expect(loadButtons.map((element) => [element.textContent?.trim(), element.disabled])).toEqual([
+      ['Load', false],
+      ['Load', false],
+    ]);
+  });
+
   it('shows an error when loading fails', async () => {
     service.load.mockRejectedValue(new Error('Unable to load mix.cue (404)'));
     const fixture = create();

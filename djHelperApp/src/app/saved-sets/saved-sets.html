@@ -50,10 +50,17 @@
                   <button
                     type="button"
                     class="primary-button"
-                    [disabled]="busySetId() !== null"
+                    [class.loaded-button]="loadedSetIds().includes(set.id)"
+                    [disabled]="busySetId() !== null || loadedSetIds().includes(set.id)"
                     (click)="load(set)"
                   >
-                    {{ busySetId() === set.id ? 'Working…' : 'Load' }}
+                    {{
+                      busySetId() === set.id
+                        ? 'Working…'
+                        : loadedSetIds().includes(set.id)
+                          ? 'Loaded ✓'
+                          : 'Load'
+                    }}
                   </button>
                   <button
                     type="button"

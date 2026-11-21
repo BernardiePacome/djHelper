@@ -269,6 +269,38 @@ describe('Waveform', () => {
     expect(component.isPlaying()).toBe(false);
   });
 
+  it('highlights only the playing panel and clears the highlight on pause or end', async () => {
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      vi.fn(() => 1),
+    );
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    const playing = await createWaveform();
+    const other = await createWaveform();
+    playing.detectChanges();
+    other.detectChanges();
+    const panel = playing.nativeElement.querySelector('.waveform-panel') as HTMLElement;
+    const otherPanel = other.nativeElement.querySelector('.waveform-panel') as HTMLElement;
+    const audio = playing.nativeElement.querySelector('audio') as HTMLAudioElement;
+    Object.defineProperty(audio, 'paused', { configurable: true, value: false });
+
+    expect(panel.classList.contains('is-playing')).toBe(false);
+    audio.dispatchEvent(new Event('play'));
+    playing.detectChanges();
+    expect(panel.classList.contains('is-playing')).toBe(true);
+    expect(otherPanel.classList.contains('is-playing')).toBe(false);
+
+    audio.dispatchEvent(new Event('pause'));
+    playing.detectChanges();
+    expect(panel.classList.contains('is-playing')).toBe(false);
+
+    audio.dispatchEvent(new Event('play'));
+    playing.detectChanges();
+    audio.dispatchEvent(new Event('ended'));
+    playing.detectChanges();
+    expect(panel.classList.contains('is-playing')).toBe(false);
+  });
+
   it('seeks to the clicked waveform position', async () => {
     const component = (await createWaveform()).componentInstance;
     const audio = createAudio({ paused: true, duration: 100, currentTime: 0 });
