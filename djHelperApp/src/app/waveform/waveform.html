@@ -1,6 +1,7 @@
 <section
   class="waveform-panel"
   aria-label="Audio waveform"
+  [class.is-playing]="isPlaying()"
   [style.--waveform-color]="playbackOptions.waveformColor()"
 >
   <div class="waveform-header">

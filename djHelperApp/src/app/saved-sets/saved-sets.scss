@@ -97,6 +97,15 @@ h2 {
   color: white;
 }
 
+.primary-button.loaded-button {
+  height: 40px;
+  padding: 7px 16px;
+  border-radius: 8px;
+  background: #27395f;
+  color: #edf2ff;
+  opacity: 0.45;
+}
+
 .secondary-button {
   border-color: rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.08);

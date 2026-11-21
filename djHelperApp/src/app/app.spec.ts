@@ -182,6 +182,53 @@ describe('App saved sets', () => {
     expect(app.loadedMixes()).toEqual([first]);
   });
 
+  it('reflects saved and removed mixes in the saved set load button', async () => {
+    service.save.mockImplementation(async () => {
+      sets.set([savedSet]);
+      return savedSet;
+    });
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const app = fixture.componentInstance;
+    const mix = await loadFiles(app);
+
+    await app.saveSet(mix.id);
+    fixture.detectChanges();
+    let loadButton = fixture.nativeElement.querySelector(
+      'app-saved-sets .primary-button',
+    ) as HTMLButtonElement;
+    expect(loadButton.textContent?.trim()).toBe('Loaded ✓');
+    expect(loadButton.disabled).toBe(true);
+
+    app.removeMix(mix.id);
+    fixture.detectChanges();
+    loadButton = fixture.nativeElement.querySelector(
+      'app-saved-sets .primary-button',
+    ) as HTMLButtonElement;
+    expect(loadButton.textContent?.trim()).toBe('Load');
+    expect(loadButton.disabled).toBe(false);
+  });
+
+  it('marks a saved set as loaded only after its files are processed', async () => {
+    sets.set([savedSet]);
+    service.load.mockResolvedValue([
+      new File([cueText], 'mix.cue'),
+      new File(['audio'], 'mix.mp3'),
+    ]);
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('app-saved-sets .primary-button').click();
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      const loadButton = fixture.nativeElement.querySelector(
+        'app-saved-sets .primary-button',
+      ) as HTMLButtonElement | null;
+      expect(loadButton?.textContent?.trim()).toBe('Loaded ✓');
+      expect(loadButton?.disabled).toBe(true);
+    });
+  });
+
   it('pairs a renamed saved audio file with its cue even if the cue references another name', async () => {
     const app = createApp();
     const audio = new File(['audio'], 'set name.mp3');

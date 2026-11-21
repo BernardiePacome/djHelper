@@ -75,7 +75,7 @@
       <app-search-bar (setLoaded)="onSavedSetLoaded($event)" />
     </section>
 
-    <app-saved-sets (setLoaded)="onSavedSetLoaded($event)" />
+    <app-saved-sets [loadedSetIds]="loadedSetIds()" (setLoaded)="onSavedSetLoaded($event)" />
   }
 
   <section>® This product is register under Registered under MIT liscense 2026</section>

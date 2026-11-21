@@ -66,6 +66,9 @@ export class App {
   public readonly errorMessage = signal('');
   // Newest first. Each mix keeps its own player, so loading another one never interrupts playback.
   public readonly loadedMixes = signal<LoadedMix[]>([]);
+  public readonly loadedSetIds = computed(() =>
+    this.loadedMixes().flatMap((mix) => (mix.savedSetId === null ? [] : [mix.savedSetId])),
+  );
   public readonly hasAudio = computed(() => this.loadedMixes().some((mix) => mix.audioFile));
   public readonly isLoadingMockFiles = signal(false);
   public readonly isLoadingFiles = signal(false);
