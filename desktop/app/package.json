@@ -1,0 +1,8 @@
+{
+  "name": "dj-toolbox",
+  "productName": "DJ Toolbox",
+  "version": "1.0.0",
+  "description": "DJ Toolbox for rekordBox",
+  "main": "main.cjs",
+  "private": true
+}
