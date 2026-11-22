@@ -1,10 +1,10 @@
 name: CI / CD
 
-# Every push to main runs the full CI, and the site is deployed only when all of its checks pass.
+# Every push to master runs the full CI. The site is deployed only when all of its checks pass,
+# and each deployment is then tagged v1.x.y.
 on:
   push:
     branches:
-      - main
       - master
   workflow_dispatch:
 
@@ -35,3 +35,29 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  tag:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tag the deployed commit
+        run: |
+          latest=$(git tag --list 'v1.*' --sort=-v:refname | grep -E '^v1\.[0-9]+\.[0-9]+$' | head -n 1 || true)
+          if [ -z "$latest" ]; then
+            next=v1.0.0
+          else
+            IFS=. read -r major minor patch <<< "${latest#v}"
+            next="v$major.$minor.$((patch + 1))"
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$next" -m "Deployment $next" "$GITHUB_SHA"
+          git push origin "$next"
+          echo "Tagged $GITHUB_SHA as $next" >> "$GITHUB_STEP_SUMMARY"
