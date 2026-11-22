@@ -1,19 +1,19 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { parseCueTracks } from './cue-parser';
-import { CueFileDropzone } from './cue-file-dropzone/cue-file-dropzone';
-import { OptionsPanel } from './options-panel/options-panel';
-import { PlaylistOutput } from './playlist-output/playlist-output';
-import { SavedSets } from './saved-sets/saved-sets';
-import { SavedSetsService } from './saved-sets/saved-sets.service';
-import { SearchBar } from './search-bar/search-bar';
-import { TrackList } from './track-list/track-list';
-import { Waveform } from './waveform/waveform';
-import { isSameFile } from './same-file';
+import { parseCueTracks } from '../helpers/cue-parser/cue-parser';
+import { CueFileDropzone } from '../components/cue-file-dropzone/cue-file-dropzone';
+import { OptionsPanel } from '../components/options-panel/options-panel';
+import { PlaylistOutput } from '../components/playlist-output/playlist-output';
+import { SavedSets } from '../components/saved-sets/saved-sets';
+import { SavedSetsService } from '../components/saved-sets/saved-sets.service';
+import { SearchBar } from '../components/search-bar/search-bar';
+import { TrackList } from '../components/track-list/track-list';
+import { Waveform } from '../components/waveform/waveform';
+import { isSameFile } from '../helpers/same-file/same-file';
 import { isMockModeUrl } from '../mocks/mock-mode';
-import type { MockFileArray } from './interfaces/mock-file';
-import type { LoadedMix } from './interfaces/loaded-mix';
-import type { LoadedSet } from './interfaces/saved-set';
-import type { SetTrack, CueMarker } from './interfaces/set-track';
+import type { MockFileArray } from '../interfaces/mock-file';
+import type { LoadedMix } from '../interfaces/loaded-mix';
+import type { LoadedSet } from '../interfaces/saved-set';
+import type { SetTrack, CueMarker } from '../interfaces/set-track';
 
 interface ParsedCue {
   playlist: SetTrack[];

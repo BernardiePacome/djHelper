@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { App } from './app';
-import { SavedSetsService } from './saved-sets/saved-sets.service';
-import type { SavedSet } from './interfaces/saved-set';
+import { SavedSetsService } from '../components/saved-sets/saved-sets.service';
+import type { SavedSet } from '../interfaces/saved-set';
 
 describe('App', () => {
   beforeEach(async () => {
