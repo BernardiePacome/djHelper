@@ -47,6 +47,17 @@ if ! command -v node >/dev/null || ! command -v npm >/dev/null; then
   exit 1
 fi
 
+# These two files are the Electron shell and are tracked in git; restore them if the folder was deleted.
+for source in "$DESKTOP_DIR/app/main.cjs" "$DESKTOP_DIR/app/package.json"; do
+  [[ -f "$source" ]] || { echo "Missing $source. Restore it with: git checkout -- desktop" >&2; exit 1; }
+done
+
+# The app allows a single instance: launching a new build while an old one runs only focuses the old one.
+if pgrep -f "/$APP_NAME.app/Contents/MacOS/" >/dev/null; then
+  echo "$APP_NAME is still running. Quit it (Cmd+Q), then run this script again." >&2
+  exit 1
+fi
+
 step() { printf '\n==> %s\n' "$1"; }
 
 if [[ "$SKIP_BUILD" == false ]]; then
@@ -76,6 +87,7 @@ step "Installing Electron tooling"
 (cd "$DESKTOP_DIR" && npm install --no-audit --no-fund)
 
 step "Packaging $APP_NAME for darwin-$ARCH"
+rm -rf "$OUT_DIR/$APP_NAME-darwin-$ARCH"
 PACKAGER_ARGS=(
   "$STAGE_DIR" "$APP_NAME"
   --platform=darwin "--arch=$ARCH"
@@ -101,4 +113,5 @@ if [[ "$MAKE_DMG" == true ]]; then
   echo "DMG: $DMG_PATH"
 fi
 
+printf '\nWeb bundle: %s (built %s)\n' "$(basename "$(ls "$STAGE_DIR"/web/main-*.js | head -n 1)")" "$(date '+%Y-%m-%d %H:%M:%S')"
 printf '\nDone: %s\nSaved sets are stored in ~/Library/Application Support/%s\n' "$APP_PATH" "$APP_NAME"
