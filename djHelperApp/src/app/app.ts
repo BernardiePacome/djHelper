@@ -32,9 +32,6 @@ import { SetTrack } from '../interfaces/set-track';
   styleUrl: './app.scss',
 })
 export class App {
-  private readonly savedSets = inject(SavedSetsService);
-  private nextMixId = 0;
-
   public readonly isMockMode = isMockModeUrl(new URL(location.href));
   public readonly errorMessage = signal('');
   // Newest first. Each mix keeps its own player, so loading another one never interrupts playback.
@@ -42,11 +39,15 @@ export class App {
   public readonly loadedSetIds = computed(() =>
     this.loadedMixes().flatMap((mix) => (mix.savedSetId === null ? [] : [mix.savedSetId])),
   );
+
   public readonly hasAudio = computed(() => this.loadedMixes().some((mix) => mix.audioFile));
   public readonly isLoadingMockFiles = signal(false);
   public readonly isLoadingFiles = signal(false);
   public readonly savedSetsReady = computed(() => this.savedSets.status() === 'ready');
-  public readonly loadedSetsList = computed(() => this.savedSets.sets().map((set) => set.name));
+  public readonly loadedSetsList = computed(() => this.savedSets.sets());
+
+  private readonly savedSets = inject(SavedSetsService);
+  private nextMixId = 0;
 
   public canSave(mix: LoadedMix): boolean {
     return (
@@ -104,46 +105,6 @@ export class App {
     this.loadedMixes.update((mixes) => mixes.filter((mix) => mix.id !== mixId));
   }
 
-  // Reuses the mix that already holds this audio so its player keeps going when a cue is added.
-  private upsertMix(
-    audioFile: File | null,
-    cueFile: File | null,
-    cue: ParsedCue | null,
-    savedSetId: string | null,
-  ): void {
-    const existing = audioFile
-      ? this.loadedMixes().find((mix) => mix.audioFile && isSameAudio(mix.audioFile, audioFile))
-      : undefined;
-
-    if (existing) {
-      if (cue) {
-        this.loadedMixes.update((mixes) =>
-          mixes.map((mix) =>
-            mix.id === existing.id
-              ? { ...mix, cueFile, ...cue, savedSetId: savedSetId ?? mix.savedSetId }
-              : mix,
-          ),
-        );
-      }
-      return;
-    }
-
-    if (!audioFile && !cue) {
-      return;
-    }
-
-    const mix: LoadedMix = {
-      id: this.nextMixId++,
-      audioFile,
-      cueFile: cue ? cueFile : null,
-      playlist: cue?.playlist ?? [],
-      trackMarkers: cue?.trackMarkers ?? [],
-      savedSetId: cue ? savedSetId : null,
-      isSaving: false,
-    };
-    this.loadedMixes.update((mixes) => [mix, ...mixes]);
-  }
-
   public async saveSet(mixId: number): Promise<void> {
     const mix = this.loadedMixes().find((candidate) => candidate.id === mixId);
     if (!mix?.cueFile || !mix.audioFile || mix.isSaving) {
@@ -177,12 +138,6 @@ export class App {
     } finally {
       this.patchMix(mixId, { isSaving: false });
     }
-  }
-
-  private patchMix(mixId: number, changes: Partial<LoadedMix>): void {
-    this.loadedMixes.update((mixes) =>
-      mixes.map((mix) => (mix.id === mixId ? { ...mix, ...changes } : mix)),
-    );
   }
 
   public async onSavedSetLoaded({ set, files }: LoadedSet): Promise<void> {
@@ -317,5 +272,50 @@ export class App {
     }
 
     return Number.NaN;
+  }
+
+  // Reuses the mix that already holds this audio so its player keeps going when a cue is added.
+  private upsertMix(
+    audioFile: File | null,
+    cueFile: File | null,
+    cue: ParsedCue | null,
+    savedSetId: string | null,
+  ): void {
+    const existing = audioFile
+      ? this.loadedMixes().find((mix) => mix.audioFile && isSameAudio(mix.audioFile, audioFile))
+      : undefined;
+
+    if (existing) {
+      if (cue) {
+        this.loadedMixes.update((mixes) =>
+          mixes.map((mix) =>
+            mix.id === existing.id
+              ? { ...mix, cueFile, ...cue, savedSetId: savedSetId ?? mix.savedSetId }
+              : mix,
+          ),
+        );
+      }
+      return;
+    }
+
+    if (!audioFile && !cue) {
+      return;
+    }
+
+    const mix: LoadedMix = {
+      id: this.nextMixId++,
+      audioFile,
+      cueFile: cue ? cueFile : null,
+      playlist: cue?.playlist ?? [],
+      trackMarkers: cue?.trackMarkers ?? [],
+      savedSetId: cue ? savedSetId : null,
+      isSaving: false,
+    };
+    this.loadedMixes.update((mixes) => [mix, ...mixes]);
+  }
+  private patchMix(mixId: number, changes: Partial<LoadedMix>): void {
+    this.loadedMixes.update((mixes) =>
+      mixes.map((mix) => (mix.id === mixId ? { ...mix, ...changes } : mix)),
+    );
   }
 }
