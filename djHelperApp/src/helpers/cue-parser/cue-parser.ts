@@ -1,4 +1,4 @@
-import type { SetTrack } from '../../interfaces/set-track';
+import { SetTrack } from '../../interfaces/set-track';
 
 export function parseCueTracks(cueText: string): SetTrack[] {
   const tracks: SetTrack[] = [];

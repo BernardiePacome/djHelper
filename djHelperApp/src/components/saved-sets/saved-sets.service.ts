@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import type {
+import {
   SavedFile,
   SavedSet,
   StorageUsage,

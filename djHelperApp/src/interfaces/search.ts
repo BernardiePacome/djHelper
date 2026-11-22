@@ -1,5 +1,5 @@
-import type { SavedSet } from './saved-set';
-import type { SetTrack } from './set-track';
+import { SavedSet } from './saved-set';
+import { SetTrack } from './set-track';
 
 export interface TextSegment {
   text: string;

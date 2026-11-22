@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { parseCueTracks } from '../helpers/cue-parser/cue-parser';
+import { isMockFileArray } from '../helpers/is-mock-file-array/is-mock-file-array';
 import { CueFileDropzone } from '../components/cue-file-dropzone/cue-file-dropzone';
 import { OptionsPanel } from '../components/options-panel/options-panel';
 import { PlaylistOutput } from '../components/playlist-output/playlist-output';
@@ -7,41 +8,13 @@ import { SavedSets } from '../components/saved-sets/saved-sets';
 import { SavedSetsService } from '../components/saved-sets/saved-sets.service';
 import { SearchBar } from '../components/search-bar/search-bar';
 import { TrackList } from '../components/track-list/track-list';
-import { Waveform } from '../components/waveform/waveform';
+import { Waveform } from '../components/waveform/waveform/waveform';
 import { isSameFile } from '../helpers/same-file/same-file';
 import { isMockModeUrl } from '../mocks/mock-mode';
-import type { MockFileArray } from '../interfaces/mock-file';
-import type { LoadedMix } from '../interfaces/loaded-mix';
-import type { LoadedSet } from '../interfaces/saved-set';
-import type { SetTrack, CueMarker } from '../interfaces/set-track';
-
-interface ParsedCue {
-  playlist: SetTrack[];
-  trackMarkers: CueMarker[];
-}
-
-function isMockFileArray(value: unknown): value is MockFileArray {
-  if (
-    typeof value !== 'object' ||
-    value === null ||
-    !('files' in value) ||
-    !Array.isArray(value.files)
-  ) {
-    return false;
-  }
-
-  return value.files.every(
-    (file) =>
-      typeof file === 'object' &&
-      file !== null &&
-      'name' in file &&
-      typeof file.name === 'string' &&
-      'url' in file &&
-      typeof file.url === 'string' &&
-      'type' in file &&
-      typeof file.type === 'string',
-  );
-}
+import { LoadedMix } from '../interfaces/loaded-mix';
+import { ParsedCue } from '../interfaces/parsed-cue';
+import { LoadedSet } from '../interfaces/saved-set';
+import { SetTrack } from '../interfaces/set-track';
 
 @Component({
   selector: 'app-root',

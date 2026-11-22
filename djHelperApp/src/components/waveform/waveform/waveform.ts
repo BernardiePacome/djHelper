@@ -10,14 +10,14 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import type { ElementRef } from '@angular/core';
-import { PlaybackOptionsService } from '../options-panel/playback-options.service';
-import { isSameFile } from '../../helpers/same-file/same-file';
-import { ActivePlayer } from './active-player';
-import { analyzeMp3 } from './mp3-waveform';
-import { PlaybackIcon } from './playback-icon';
-import { TrackTooltipText } from './track-tooltip-text';
-import type { CueMarker, PositionedCueMarker } from '../../interfaces/set-track';
+import { ElementRef } from '@angular/core';
+import { PlaybackOptionsService } from '../../options-panel/playback-options.service';
+import { isSameFile } from '../../../helpers/same-file/same-file';
+import { ActivePlayer } from '../active-player';
+import { analyzeMp3 } from '../mp3-waveform/mp3-waveform';
+import { PlaybackIcon } from '../playback-icon/playback-icon';
+import { TrackTooltipText } from '../track-tooltip-text/track-tooltip-text';
+import { CueMarker, PositionedCueMarker } from '../../../interfaces/set-track';
 
 @Component({
   selector: 'app-waveform',

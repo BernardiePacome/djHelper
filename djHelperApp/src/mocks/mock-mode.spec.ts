@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { isMockModeUrl } from './mock-mode';
 
 describe('isMockModeUrl', () => {

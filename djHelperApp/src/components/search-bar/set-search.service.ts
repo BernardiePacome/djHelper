@@ -2,8 +2,8 @@ import { Injectable, inject, signal } from '@angular/core';
 import { parseCueTracks } from '../../helpers/cue-parser/cue-parser';
 import { SavedSetsService } from '../saved-sets/saved-sets.service';
 import { matchesAllTerms, searchTerms } from './search-text';
-import type { SetSearchResult } from '../../interfaces/search';
-import type { SetTrack } from '../../interfaces/set-track';
+import { SetSearchResult } from '../../interfaces/search';
+import { SetTrack } from '../../interfaces/set-track';
 
 @Injectable({ providedIn: 'root' })
 export class SetSearchService {

@@ -1,8 +1,9 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { SavedSetsService } from '../saved-sets/saved-sets.service';
 import { SetSearchService } from './set-search.service';
-import type { SavedSet } from '../../interfaces/saved-set';
+import { SavedSet } from '../../interfaces/saved-set';
 
 function makeSet(id: string, name: string): SavedSet {
   return {

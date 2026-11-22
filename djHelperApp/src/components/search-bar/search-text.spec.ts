@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { highlightMatches, normalizeSearchText } from './search-text';
 
 describe('normalizeSearchText', () => {

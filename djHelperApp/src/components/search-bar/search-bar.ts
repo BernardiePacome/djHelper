@@ -2,8 +2,8 @@ import { Component, computed, effect, inject, output, signal } from '@angular/co
 import { SavedSetsService } from '../saved-sets/saved-sets.service';
 import { SetSearchService } from './set-search.service';
 import { highlightMatches } from './search-text';
-import type { SavedSet, LoadedSet } from '../../interfaces/saved-set';
-import type { ResultRow } from '../../interfaces/search';
+import { SavedSet, LoadedSet } from '../../interfaces/saved-set';
+import { ResultRow } from '../../interfaces/search';
 
 const MAX_TRACKS_SHOWN = 5;
 

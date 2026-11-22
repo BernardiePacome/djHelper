@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { parseCueTracks } from './cue-parser';
 
 describe('parseCueTracks', () => {

@@ -1,4 +1,4 @@
-import type { TextSegment } from '../../interfaces/search';
+import { TextSegment } from '../../interfaces/search';
 
 export function normalizeSearchText(text: string): string {
   return text

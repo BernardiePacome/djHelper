@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import type { IndexedCueMarker } from '../../interfaces/set-track';
+import { IndexedCueMarker } from '../../../interfaces/set-track';
 
 @Component({
   selector: 'app-track-tooltip-text',

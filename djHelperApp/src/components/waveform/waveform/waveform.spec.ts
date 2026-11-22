@@ -1,7 +1,8 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { PlaybackOptionsService } from '../options-panel/playback-options.service';
+import { PlaybackOptionsService } from '../../options-panel/playback-options.service';
 import { Waveform } from './waveform';
-import type { CueMarker } from '../../interfaces/set-track';
+import { CueMarker } from '../../../interfaces/set-track';
 
 class MockOfflineAudioContext {
   public decodeAudioData = vi.fn(async () => ({

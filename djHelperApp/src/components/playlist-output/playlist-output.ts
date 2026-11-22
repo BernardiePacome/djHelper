@@ -1,5 +1,5 @@
 import { Component, computed, input, signal } from '@angular/core';
-import type { SetTrack } from '../../interfaces/set-track';
+import { SetTrack } from '../../interfaces/set-track';
 
 @Component({
   selector: 'app-playlist-output',

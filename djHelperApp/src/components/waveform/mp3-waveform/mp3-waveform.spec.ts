@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { analyzeMp3 } from './mp3-waveform';
 
 const decoder = vi.hoisted(() => ({

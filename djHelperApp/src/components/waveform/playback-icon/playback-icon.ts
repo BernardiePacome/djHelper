@@ -1,5 +1,5 @@
 import { Component, computed, input } from '@angular/core';
-import type { PlaybackIconName } from '../../interfaces/playback-icon';
+import { PlaybackIconName } from '../../../interfaces/playback-icon';
 
 @Component({
   selector: 'app-playback-icon',

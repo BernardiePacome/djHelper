@@ -1,5 +1,5 @@
 import { Component, input, output, signal } from '@angular/core';
-import type { CueMarker, SetTrack } from '../../interfaces/set-track';
+import { CueMarker, SetTrack } from '../../interfaces/set-track';
 
 @Component({
   selector: 'app-track-list',

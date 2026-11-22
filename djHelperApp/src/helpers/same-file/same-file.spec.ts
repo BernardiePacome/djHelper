@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import { isSameFile } from './same-file';
 
 describe('isSameFile', () => {
