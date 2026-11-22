@@ -131,3 +131,6 @@ dist
 
 # SQLite and server data files
 server/data/*
+
+# Desktop (macOS app) build output
+desktop/build/
