@@ -1,0 +1,155 @@
+.search-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(15, 20, 30, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.search-label {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(5, 9, 18, 0.9);
+  color: #eff4ff;
+  font: inherit;
+}
+
+input::placeholder {
+  color: #b9c5e7;
+  opacity: 0.7;
+}
+
+input:focus-visible {
+  outline: 2px solid #7596ff;
+  outline-offset: 1px;
+}
+
+.muted,
+.track-time {
+  color: #b9c5e7;
+}
+
+.muted {
+  margin: 0;
+}
+
+.result-list,
+.track-matches {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.result-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.result-info {
+  display: flex;
+  flex: 1 1 200px;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.result-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.track-matches {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.9rem;
+}
+
+.track-artist {
+  font-weight: 600;
+}
+
+.match {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: #8aa4ff;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.track-time {
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.primary-button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.5rem 0.9rem;
+  background: linear-gradient(135deg, #7596ff, #7f5bff);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.primary-button:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.primary-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.error-message {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 85, 85, 0.1);
+  border: 1px solid rgba(255, 85, 85, 0.35);
+  color: #ff9c9c;
+}
+
+@media (max-width: 600px) {
+  .search-bar {
+    padding: 14px;
+  }
+
+  // 16px stops iOS Safari from zooming the page when the field is focused.
+  input {
+    font-size: 16px;
+  }
+
+  .result-row > button {
+    flex: 1 1 100%;
+    min-height: 44px;
+  }
+}

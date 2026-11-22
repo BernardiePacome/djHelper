@@ -1,0 +1,88 @@
+<section class="search-bar">
+  <label class="search-label" for="set-search">Search saved sets</label>
+  <div class="search-field">
+    <input
+      id="set-search"
+      type="search"
+      autocomplete="off"
+      placeholder="Set name, artist or song title"
+      [value]="query()"
+      (input)="onInput($event)"
+      (keydown.escape)="clear()"
+    />
+  </div>
+
+  @if (errorMessage()) {
+    <p class="error-message" role="alert">{{ errorMessage() }}</p>
+  }
+
+  @if (hasQuery()) {
+    @if (isUnavailable()) {
+      <p class="muted">Search is unavailable because the server can't be reached.</p>
+    } @else {
+      @if (isIndexing()) {
+        <p class="muted">Reading track lists…</p>
+      }
+
+      @if (rows().length > 0) {
+        <ul class="result-list" aria-label="Search results">
+          @for (row of rows(); track row.set.id) {
+            <li class="result-row">
+              <div class="result-info">
+                <span class="result-name">
+                  @for (segment of row.name; track $index) {
+                    @if (segment.match) {
+                      <mark class="match">{{ segment.text }}</mark>
+                    } @else {
+                      <span>{{ segment.text }}</span>
+                    }
+                  }
+                </span>
+                @if (row.tracks.length > 0) {
+                  <ul class="track-matches">
+                    @for (track of row.tracks; track $index) {
+                      <li>
+                        <span class="track-artist">
+                          @for (segment of track.artist; track $index) {
+                            @if (segment.match) {
+                              <mark class="match">{{ segment.text }}</mark>
+                            } @else {
+                              <span>{{ segment.text }}</span>
+                            }
+                          }
+                        </span>
+                        –
+                        @for (segment of track.title; track $index) {
+                          @if (segment.match) {
+                            <mark class="match">{{ segment.text }}</mark>
+                          } @else {
+                            <span>{{ segment.text }}</span>
+                          }
+                        }
+                        <span class="track-time">{{ track.playTime }}</span>
+                      </li>
+                    }
+                    @if (row.hiddenTrackCount > 0) {
+                      <li class="muted">+{{ row.hiddenTrackCount }} more</li>
+                    }
+                  </ul>
+                }
+              </div>
+
+              <button
+                type="button"
+                class="primary-button"
+                [disabled]="busySetId() !== null"
+                (click)="load(row.set)"
+              >
+                {{ busySetId() === row.set.id ? 'Working…' : 'Load' }}
+              </button>
+            </li>
+          }
+        </ul>
+      } @else if (!isIndexing()) {
+        <p class="muted">No saved sets match "{{ query().trim() }}".</p>
+      }
+    }
+  }
+</section>
