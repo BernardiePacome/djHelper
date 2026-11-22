@@ -1,7 +1,8 @@
-import { TestBed } from '@angular/core/testing';
-import { PlaybackOptionsService } from '../options-panel/playback-options.service';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { PlaybackOptionsService } from '../services/playback-options.service';
 import { Waveform } from './waveform';
-import type { CueMarker } from '../interfaces/set-track';
+import type { CueMarker } from '../../interfaces/set-track';
 
 class MockOfflineAudioContext {
   public decodeAudioData = vi.fn(async () => ({
@@ -36,6 +37,7 @@ describe('Waveform', () => {
     await TestBed.configureTestingModule({
       imports: [Waveform],
     }).compileComponents();
+    TestBed.inject(PlaybackOptionsService).crossfadeDuration.set(0.2);
   });
 
   afterEach(() => {
@@ -61,8 +63,16 @@ describe('Waveform', () => {
     fixture.componentRef.setInput('file', file);
     fixture.componentRef.setInput('trackMarkers', markers);
     fixture.detectChanges();
-    await fixture.whenStable();
+    await settle(fixture);
     return fixture;
+  }
+
+  // Lets the asynchronous waveform load finish; whenStable alone does not cover every awaited step.
+  async function settle(fixture: ComponentFixture<Waveform>) {
+    await fixture.whenStable();
+    for (let attempt = 0; attempt < 20 && fixture.componentInstance.isLoading(); attempt++) {
+      await Promise.resolve();
+    }
   }
 
   function createAudio(options: { paused: boolean; duration: number; currentTime: number }) {
@@ -191,6 +201,66 @@ describe('Waveform', () => {
     expect(fixture.componentInstance.activeFile()).toBe(nextFile);
   });
 
+  describe('server waveform cache', () => {
+    const cacheId = '11111111-1111-4111-8111-111111111111';
+
+    it('uses the cached waveform instead of analyzing the file', async () => {
+      const cached = { peaks: [0.1, 0.9], duration: 42 };
+      const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(cached)));
+      vi.stubGlobal('fetch', fetchMock);
+      const audioContext = vi.fn();
+      vi.stubGlobal('OfflineAudioContext', audioContext);
+
+      const fixture = TestBed.createComponent(Waveform);
+      fixture.componentRef.setInput('file', new File(['audio data'], 'set.wav'));
+      fixture.componentRef.setInput('cacheFileId', cacheId);
+      fixture.detectChanges();
+      await settle(fixture);
+
+      expect(fetchMock).toHaveBeenCalledWith(`/api/files/${cacheId}/waveform`);
+      expect(fixture.componentInstance.duration()).toBe(42);
+      expect(fixture.componentInstance.peaks()).toEqual([0.1, 0.9]);
+      expect(audioContext).not.toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledOnce();
+    });
+
+    it('analyzes and uploads the waveform when the server has none', async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(new Response(null, { status: 204 }))
+        .mockResolvedValue(new Response(null, { status: 204 }));
+      vi.stubGlobal('fetch', fetchMock);
+      const file = new File(['audio data'], 'set.wav');
+      Object.defineProperty(file, 'arrayBuffer', {
+        value: vi.fn().mockResolvedValue(new ArrayBuffer(4)),
+      });
+
+      const fixture = TestBed.createComponent(Waveform);
+      fixture.componentRef.setInput('file', file);
+      fixture.componentRef.setInput('cacheFileId', cacheId);
+      fixture.detectChanges();
+      await settle(fixture);
+
+      expect(fixture.componentInstance.duration()).toBe(60);
+      const upload = fetchMock.mock.calls[1];
+      expect(upload[0]).toBe(`/api/files/${cacheId}/waveform`);
+      expect(upload[1].method).toBe('PUT');
+      expect(JSON.parse(upload[1].body)).toMatchObject({ duration: 60 });
+    });
+
+    it('uploads an already analyzed waveform once its set is saved', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+      vi.stubGlobal('fetch', fetchMock);
+      const fixture = await createWaveform();
+
+      fixture.componentRef.setInput('cacheFileId', cacheId);
+      fixture.detectChanges();
+
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(fetchMock.mock.calls[0][1].method).toBe('PUT');
+    });
+  });
+
   it('updates the current time from the audio player', async () => {
     const component = (await createWaveform()).componentInstance;
 
@@ -215,22 +285,38 @@ describe('Waveform', () => {
     expect(playingAudio.pause).toHaveBeenCalledOnce();
   });
 
-  it('pauses the playing waveform when another one starts', async () => {
-    TestBed.inject(PlaybackOptionsService).fadeSeconds.set(0);
-    const playing = await createWaveform();
-    const other = await createWaveform();
-    const element = (playing.nativeElement as HTMLElement).querySelector('audio')!;
-    Object.defineProperty(element, 'paused', { configurable: true, value: false });
-    const pause = vi.spyOn(element, 'pause').mockImplementation(() => undefined);
+  it('fades the playing waveform out when another one starts', async () => {
+    vi.useFakeTimers();
+    try {
+      const first = await createWaveform();
+      const second = await createWaveform();
+      first.detectChanges();
+      second.detectChanges();
+      const firstAudio = first.nativeElement.querySelector('audio') as HTMLAudioElement;
+      const secondAudio = second.nativeElement.querySelector('audio') as HTMLAudioElement;
+      Object.defineProperty(firstAudio, 'paused', { configurable: true, value: false });
+      Object.defineProperty(secondAudio, 'paused', { configurable: true, value: false });
+      const pauseFirst = vi.spyOn(firstAudio, 'pause').mockImplementation(() => undefined);
 
-    other.componentInstance.onAudioPlay(
-      createAudio({ paused: false, duration: 60, currentTime: 0 }),
-    );
-    other.componentInstance.onAudioPause();
-    playing.detectChanges();
-    await playing.whenStable();
+      first.componentInstance.onAudioPlay(firstAudio);
+      expect(firstAudio.volume).toBe(1);
+      second.componentInstance.onAudioPlay(secondAudio);
+      expect(secondAudio.volume).toBe(0);
 
-    expect(pause).toHaveBeenCalledOnce();
+      vi.advanceTimersByTime(100);
+      expect(firstAudio.volume).toBeGreaterThan(0);
+      expect(firstAudio.volume).toBeLessThan(1);
+      expect(secondAudio.volume).toBeGreaterThan(0);
+      expect(secondAudio.volume).toBeLessThan(1);
+      expect(pauseFirst).not.toHaveBeenCalled();
+
+      vi.advanceTimersByTime(150);
+      expect(secondAudio.volume).toBe(1);
+      expect(pauseFirst).toHaveBeenCalledOnce();
+      expect(first.nativeElement.querySelector('.deck-label')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('reports playback failures', async () => {
@@ -244,6 +330,25 @@ describe('Waveform', () => {
     await component.togglePlayback(audio);
 
     expect(component.playbackError()).toBe('Unable to play audio: blocked');
+  });
+
+  it('stops playback when the audio element reports an error', async () => {
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      vi.fn(() => 1),
+    );
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    const fixture = await createWaveform();
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    const audio = createAudio({ paused: false, duration: 60, currentTime: 0 });
+    component.onAudioPlay(audio);
+
+    component.onAudioError();
+    fixture.detectChanges();
+
+    expect(component.isPlaying()).toBe(false);
+    expect(component.playbackError()).toBe('Unable to play this audio file.');
   });
 
   it('updates playback state when playback starts, pauses, and ends', async () => {
@@ -318,12 +423,12 @@ describe('Waveform', () => {
   });
 
   it('seeks to a playlist transition while preserving playback', async () => {
-    TestBed.inject(PlaybackOptionsService).fadeSeconds.set(0);
     const fixture = await createWaveform();
     fixture.detectChanges();
     const audio = fixture.nativeElement.querySelector('audio') as HTMLAudioElement;
     Object.defineProperty(audio, 'paused', { configurable: true, value: false });
     const pause = vi.spyOn(audio, 'pause').mockImplementation(() => undefined);
+    TestBed.inject(PlaybackOptionsService).crossfadeDuration.set(0);
 
     await fixture.componentInstance.seekToTime(30);
 
@@ -347,6 +452,41 @@ describe('Waveform', () => {
     await component.skipToCue(audio, 'previous');
     expect(audio.currentTime).toBe(8);
     expect(component.currentTime()).toBe(8);
+  });
+
+  it('crossfades the old position into the next transition while playing', async () => {
+    vi.useFakeTimers();
+    try {
+      const outgoing = { currentTime: 0, volume: 1, play: vi.fn(), pause: vi.fn() };
+      vi.stubGlobal(
+        'Audio',
+        vi.fn(function () {
+          return outgoing;
+        }),
+      );
+      const component = (await createWaveform()).componentInstance;
+      component.duration.set(60);
+      const audio = createAudio({ paused: false, duration: 60, currentTime: 20 });
+
+      await component.skipToCue(audio, 'next');
+
+      expect(audio.currentTime).toBe(30);
+      expect(outgoing.currentTime).toBe(20);
+      expect(outgoing.play).toHaveBeenCalledOnce();
+      expect(audio.volume).toBe(0);
+
+      vi.advanceTimersByTime(100);
+      expect(audio.volume).toBeGreaterThan(0);
+      expect(audio.volume).toBeLessThan(1);
+      expect(outgoing.volume).toBeGreaterThan(0);
+      expect(outgoing.volume).toBeLessThan(1);
+
+      vi.advanceTimersByTime(150);
+      expect(audio.volume).toBe(1);
+      expect(outgoing.pause).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('continues to earlier transitions on repeated previous skips', async () => {

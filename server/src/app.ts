@@ -7,12 +7,12 @@ import multipart from '@fastify/multipart';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 import type { Config } from './config.ts';
-import { createFileStore, createSetStore, openDatabase } from './db.ts';
+import { createFileStore, createSetStore, createWaveformStore, openDatabase } from './db.ts';
 import type { StoredFile, StoredSet } from './db.ts';
 import { classifyFile, sanitizeFileName } from './file-types.ts';
-import { analyzeWaveform } from './waveform.ts';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const MAX_WAVEFORM_PEAKS = 2000;
 const DATABASE_FILE_NAME = 'djhelper.sqlite';
 // Files uploaded but never attached to a set (e.g. the browser closed mid-save) are purged after this long.
 const UNATTACHED_FILE_TTL_MS = 60 * 60 * 1000;
@@ -40,6 +40,7 @@ export async function buildApp(config: Config, options: { logger?: boolean } = {
   const database = openDatabase(databasePath);
   const store = createFileStore(database);
   const sets = createSetStore(database, store);
+  const waveforms = createWaveformStore(database);
 
   for (const id of store.unattachedBefore(new Date(Date.now() - UNATTACHED_FILE_TTL_MS).toISOString())) {
     store.remove(id);
@@ -201,31 +202,45 @@ export async function buildApp(config: Config, options: { logger?: boolean } = {
     return reply.code(204).send();
   });
 
-  app.post<{ Params: { id: string } }>(
+  // Waveforms are computed by the browser once and cached so reloading a saved track skips the analysis.
+  app.get<{ Params: { id: string } }>('/api/files/:id/waveform', async (request, reply) => {
+    const file = UUID_PATTERN.test(request.params.id) ? store.get(request.params.id) : undefined;
+    if (file?.kind !== 'audio') {
+      return reply.code(404).send({ error: 'Audio file not found' });
+    }
+
+    const waveform = waveforms.get(file.id);
+    return waveform ? reply.send(waveform) : reply.code(204).send();
+  });
+
+  app.put<{ Params: { id: string }; Body: { peaks: number[]; duration: number } }>(
     '/api/files/:id/waveform',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['peaks', 'duration'],
+          additionalProperties: false,
+          properties: {
+            peaks: {
+              type: 'array',
+              minItems: 1,
+              maxItems: MAX_WAVEFORM_PEAKS,
+              items: { type: 'number', minimum: 0, maximum: 1 },
+            },
+            duration: { type: 'number', exclusiveMinimum: 0 },
+          },
+        },
+      },
+    },
     async (request, reply) => {
-      const { id } = request.params;
-      if (!UUID_PATTERN.test(id)) {
-        return reply.code(400).send({ error: 'Invalid file ID' });
+      const file = UUID_PATTERN.test(request.params.id) ? store.get(request.params.id) : undefined;
+      if (file?.kind !== 'audio') {
+        return reply.code(404).send({ error: 'Audio file not found' });
       }
 
-      const file = store.get(id);
-      if (!file) {
-        return reply.code(404).send({ error: 'File not found' });
-      }
-
-      if (file.kind !== 'audio') {
-        return reply.code(400).send({ error: 'Only audio files can be analyzed' });
-      }
-
-      try {
-        const filePath = path.join(uploadsDir, id);
-        const waveformData = await analyzeWaveform(filePath);
-        return reply.send(waveformData);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        return reply.code(400).send({ error: `Failed to analyze waveform: ${message}` });
-      }
+      waveforms.put(file.id, { peaks: request.body.peaks, duration: request.body.duration });
+      return reply.code(204).send();
     },
   );
 

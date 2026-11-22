@@ -1,0 +1,38 @@
+<section class="options-panel">
+  <div class="d-flex">
+    <h2>Options</h2>
+    <div class="options-row">
+      <label class="crossfader">
+        <span>Crossfade</span>
+        <span class="range-label">0s</span>
+        <input
+          type="range"
+          min="0"
+          [max]="options.maxCrossfadeDuration"
+          step="0.01"
+          [value]="options.crossfadeDuration()"
+          (input)="onCrossfadeDurationInput($event)"
+          aria-label="Crossfade duration in seconds"
+        />
+        <span class="range-label">{{ options.maxCrossfadeDuration }}s</span>
+        <output>{{ options.crossfadeDuration().toFixed(2) }}s</output>
+      </label>
+      <div class="color-picker" role="radiogroup" aria-label="Waveform color">
+        <span>Waveform color</span>
+        @for (color of options.waveformColors; track color.value) {
+          <button
+            type="button"
+            role="radio"
+            class="swatch"
+            [class.selected]="options.waveformColor() === color.value"
+            [attr.aria-checked]="options.waveformColor() === color.value"
+            [attr.aria-label]="color.name"
+            [title]="color.name"
+            [style.background]="color.value"
+            (click)="options.waveformColor.set(color.value)"
+          ></button>
+        }
+      </div>
+    </div>
+  </div>
+</section>

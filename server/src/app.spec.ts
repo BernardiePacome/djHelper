@@ -242,6 +242,34 @@ describe('saved sets', () => {
     ).toBe(404);
   });
 
+  it('caches a waveform per audio file and drops it with the file', async () => {
+    await start();
+    const audio = await upload(new Uint8Array([1, 2, 3, 4]), 'mix.mp3');
+    const waveformUrl = `${audio.url}/waveform`;
+
+    expect((await app.inject(waveformUrl)).statusCode).toBe(204);
+
+    const waveform = { peaks: [0.25, 1, 0.5], duration: 61.5 };
+    const stored = await app.inject({ method: 'PUT', url: waveformUrl, payload: waveform });
+    expect(stored.statusCode).toBe(204);
+    const cached = await app.inject(waveformUrl);
+    expect(cached.statusCode).toBe(200);
+    expect(cached.json()).toEqual(waveform);
+
+    const invalid = await app.inject({
+      method: 'PUT',
+      url: waveformUrl,
+      payload: { peaks: [2], duration: 10 },
+    });
+    expect(invalid.statusCode).toBe(400);
+
+    const cue = await upload(CUE_CONTENT, 'mix.cue');
+    expect((await app.inject({ method: 'PUT', url: `${cue.url}/waveform`, payload: waveform })).statusCode).toBe(404);
+
+    await app.inject({ method: 'DELETE', url: audio.url });
+    expect((await app.inject(waveformUrl)).statusCode).toBe(404);
+  });
+
   it('purges stale uploads that never joined a set, and keeps saved ones', async () => {
     await start();
     const kept = await uploadPair();

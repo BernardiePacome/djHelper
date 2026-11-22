@@ -1,47 +1,20 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { parseCueTracks } from './cue-parser';
-import { CueFileDropzone } from './cue-file-dropzone/cue-file-dropzone';
-import { OptionsPanel } from './options-panel/options-panel';
-import { PlaylistOutput } from './playlist-output/playlist-output';
-import { SavedSets } from './saved-sets/saved-sets';
-import { SavedSetsService } from './saved-sets/saved-sets.service';
-import { SearchBar } from './search-bar/search-bar';
-import { TrackList } from './track-list/track-list';
-import { Waveform } from './waveform/waveform';
-import { isSameFile } from './same-file';
+import { parseCueTracks } from '../helpers/cue-parser/cue-parser';
+import { isMockFileArray } from '../helpers/is-mock-file-array/is-mock-file-array';
+import { CueFileDropzone } from '../components/cue-file-dropzone/cue-file-dropzone';
+import { OptionsPanel } from '../components/options-panel/options-panel';
+import { PlaylistOutput } from '../components/playlist-output/playlist-output';
+import { SavedSets } from '../components/saved-sets/saved-sets';
+import { SavedSetsService } from './services/saved-sets.service';
+import { SearchBar } from '../components/search-bar/search-bar';
+import { TrackList } from '../components/track-list/track-list';
+import { Waveform } from '../components/waveform/waveform/waveform';
+import { isSameAudio } from '../helpers/same-file/same-file';
 import { isMockModeUrl } from '../mocks/mock-mode';
-import type { MockFileArray } from './interfaces/mock-file';
-import type { LoadedMix } from './interfaces/loaded-mix';
-import type { LoadedSet } from './interfaces/saved-set';
-import type { SetTrack, CueMarker } from './interfaces/set-track';
-
-interface ParsedCue {
-  playlist: SetTrack[];
-  trackMarkers: CueMarker[];
-}
-
-function isMockFileArray(value: unknown): value is MockFileArray {
-  if (
-    typeof value !== 'object' ||
-    value === null ||
-    !('files' in value) ||
-    !Array.isArray(value.files)
-  ) {
-    return false;
-  }
-
-  return value.files.every(
-    (file) =>
-      typeof file === 'object' &&
-      file !== null &&
-      'name' in file &&
-      typeof file.name === 'string' &&
-      'url' in file &&
-      typeof file.url === 'string' &&
-      'type' in file &&
-      typeof file.type === 'string',
-  );
-}
+import { LoadedMix } from '../interfaces/loaded-mix';
+import { ParsedCue } from '../interfaces/parsed-cue';
+import { LoadedSet } from '../interfaces/saved-set';
+import { SetTrack } from '../interfaces/set-track';
 
 @Component({
   selector: 'app-root',
@@ -89,6 +62,12 @@ export class App {
     return id !== null && this.savedSets.sets().some((set) => set.id === id);
   }
 
+  // Only audio stored on the server has a waveform cache; browser-local fallback sets do not.
+  public cacheFileId(mix: LoadedMix): string | null {
+    const id = this.savedSets.sets().find((set) => set.id === mix.savedSetId)?.audio.id ?? null;
+    return id !== null && !id.startsWith('local-') ? id : null;
+  }
+
   public async onFilesSelected(files: File[], savedSetId: string | null = null): Promise<void> {
     this.isLoadingFiles.set(true);
     this.errorMessage.set('');
@@ -133,14 +112,16 @@ export class App {
     savedSetId: string | null,
   ): void {
     const existing = audioFile
-      ? this.loadedMixes().find((mix) => mix.audioFile && isSameFile(mix.audioFile, audioFile))
+      ? this.loadedMixes().find((mix) => mix.audioFile && isSameAudio(mix.audioFile, audioFile))
       : undefined;
 
     if (existing) {
       if (cue) {
         this.loadedMixes.update((mixes) =>
           mixes.map((mix) =>
-            mix.id === existing.id ? { ...mix, cueFile, ...cue, savedSetId } : mix,
+            mix.id === existing.id
+              ? { ...mix, cueFile, ...cue, savedSetId: savedSetId ?? mix.savedSetId }
+              : mix,
           ),
         );
       }
