@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, computed, signal } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class PlaybackOptionsService {
@@ -8,5 +8,7 @@ export class PlaybackOptionsService {
     { name: 'Orange', value: '#ff8c1a' },
   ] as const;
   public readonly waveformColor = signal<string>('#ff00fb');
-  public readonly fadeSeconds = signal(0.3);
+  public readonly maxCrossfadeDuration = 5;
+  public readonly crossfadeDuration = signal(2);
+  public readonly crossfadeMs = computed(() => this.crossfadeDuration() * 1000);
 }

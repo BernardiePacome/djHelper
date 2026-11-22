@@ -1,0 +1,162 @@
+<section
+  class="waveform-panel"
+  aria-label="Audio waveform"
+  [class.is-playing]="isPlaying()"
+  [style.--waveform-color]="playbackOptions.waveformColor()"
+>
+  <div class="waveform-header">
+    <h2>Waveform</h2>
+    <span class="audio-file-name">{{ activeFile()?.name ?? file().name }}</span>
+  </div>
+
+  @if (isLoading()) {
+    <p class="waveform-message" role="status">Analyzing {{ file().name }}…</p>
+  }
+  @if (errorMessage()) {
+    <p class="waveform-error" role="alert">{{ errorMessage() }}</p>
+  }
+  @if (audioSource()) {
+    <audio
+      #audioPlayer
+      [src]="audioSource()"
+      (play)="onAudioPlay(audioPlayer)"
+      (pause)="onAudioPause()"
+      (timeupdate)="onAudioTimeUpdate(audioPlayer)"
+      (ended)="onAudioEnded()"
+      (error)="onAudioError()"
+      hidden
+    ></audio>
+    <div class="player-controls">
+      <button
+        (click)="skipToCue(audioPlayer, 'previous')"
+        [disabled]="!hasPreviousCue()"
+        type="button"
+        class="playback-button playback-toggle"
+        aria-label="Previous Transition"
+      >
+        <app-playback-icon [name]="'previous'" />
+      </button>
+
+      <!-- Determine the playback action based on whether the audio is currently playing or paused. If it is playing, the action will be 'pause', otherwise it will be 'play'. -->
+      @let playbackAction = isPlaying() ? 'pause' : 'play';
+
+      <button
+        (click)="togglePlayback(audioPlayer)"
+        [attr.aria-label]="playbackAction"
+        type="button"
+        class="playback-button playback-toggle"
+      >
+        <app-playback-icon [name]="playbackAction" />
+      </button>
+
+      <button
+        (click)="skipToCue(audioPlayer, 'next')"
+        [disabled]="!hasNextCue()"
+        type="button"
+        class="playback-button playback-toggle"
+        aria-label="Next Transition"
+      >
+        <app-playback-icon [name]="'next'" />
+      </button>
+
+      <button
+        (click)="saveRequested.emit()"
+        [disabled]="!canSave() || isSaving() || isSaved()"
+        [title]="
+          canSave() || isSaved()
+            ? ''
+            : 'Load a cue file together with its audio file to save the set'
+        "
+        type="button"
+        class="playback-button save-button"
+      >
+        {{ isSaving() ? 'Saving…' : isSaved() ? 'Saved ✓' : 'Save Set' }}
+      </button>
+      <span class="playback-time" aria-live="off"
+        >{{ formattedCurrentTime() }} / {{ formattedDuration() }}</span
+      >
+    </div>
+    @if (playbackError()) {
+      <p class="waveform-error" role="alert">{{ playbackError() }}</p>
+    }
+    <div class="waveform-container">
+      <img
+        src="assets/icons/play.svg"
+        class="playback-cursor"
+        [style.left.%]="(playbackPosition() / 1200) * 100"
+        alt=""
+        aria-hidden="true"
+      />
+      <svg
+        (click)="seekAudio($event, audioPlayer)"
+        [attr.aria-label]="'Audio waveform, duration ' + duration().toFixed(1) + ' seconds'"
+        class="waveform"
+        viewBox="0 0 1200 100"
+        preserveAspectRatio="none"
+        role="group"
+      >
+        <defs>
+          <clipPath [attr.id]="clipId + '-played'">
+            <rect x="0" y="0" [attr.width]="playbackPosition()" height="100" />
+          </clipPath>
+          <clipPath [attr.id]="clipId + '-unplayed'">
+            <rect
+              [attr.x]="playbackPosition()"
+              y="0"
+              [attr.width]="1200 - playbackPosition()"
+              height="100"
+            />
+          </clipPath>
+        </defs>
+        <g class="bars bars-unplayed" [attr.clip-path]="'url(#' + clipId + '-unplayed)'">
+          <path class="bars-main" [attr.d]="mainBarsPath()" />
+          <path class="bars-reflection" [attr.d]="reflectionBarsPath()" />
+        </g>
+        <g class="bars bars-played" [attr.clip-path]="'url(#' + clipId + '-played)'">
+          <path class="bars-main" [attr.d]="mainBarsPath()" />
+          <path class="bars-reflection" [attr.d]="reflectionBarsPath()" />
+        </g>
+        @for (marker of visibleTrackMarkers(); track marker.index) {
+          <g
+            (mouseenter)="showMarkerTooltip(marker)"
+            (mouseleave)="hideMarkerTooltip()"
+            (focus)="showMarkerTooltip(marker)"
+            (blur)="hideMarkerTooltip()"
+            (click)="$event.stopPropagation(); togglePinnedMarker(marker)"
+            (keydown)="onMarkerKeydown($event, marker)"
+            [attr.aria-label]="marker.artist + ' - ' + marker.title"
+            class="track-marker"
+            role="button"
+            tabindex="0"
+          >
+            <line
+              class="track-marker-hitbox"
+              [attr.x1]="marker.x"
+              y1="0"
+              [attr.x2]="marker.x"
+              y2="100"
+            />
+            <line
+              class="track-marker-line"
+              [attr.x1]="marker.x"
+              y1="0"
+              [attr.x2]="marker.x"
+              y2="100"
+            />
+          </g>
+        }
+      </svg>
+      @for (tooltip of activeTooltipMarkers(); track tooltip.position) {
+        <div
+          [class.track-tooltip-bottom]="tooltip.position === 'bottom'"
+          [style.--marker-x]="(tooltip.marker.x / 1200) * 100 + '%'"
+          class="track-tooltip"
+          role="tooltip"
+        >
+          <app-track-tooltip-text [marker]="tooltip.marker" />
+        </div>
+      }
+    </div>
+    <p class="waveform-duration">{{ formattedDuration() }}</p>
+  }
+</section>

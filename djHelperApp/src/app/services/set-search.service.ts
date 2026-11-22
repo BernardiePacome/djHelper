@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { parseCueTracks } from '../../helpers/cue-parser/cue-parser';
-import { SavedSetsService } from '../saved-sets/saved-sets.service';
-import { matchesAllTerms, searchTerms } from './search-text';
+import { SavedSetsService } from './saved-sets.service';
+import { matchesAllTerms, searchTerms } from '../../components/search-bar/search-text';
 import { SetSearchResult } from '../../interfaces/search';
 import { SetTrack } from '../../interfaces/set-track';
 

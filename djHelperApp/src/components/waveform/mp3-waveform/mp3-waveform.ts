@@ -1,9 +1,6 @@
-const CHUNK_SIZE = 64 * 1024;
+import { EnergyBucket } from '../../../interfaces/energy-bucket';
 
-interface EnergyBucket {
-  sum: number;
-  count: number;
-}
+const CHUNK_SIZE = 64 * 1024;
 
 export async function analyzeMp3(
   file: File,
@@ -17,6 +14,7 @@ export async function analyzeMp3(
 
   const decoder = new MPEGDecoder();
   const buckets: EnergyBucket[] = [];
+
   let bucketSize = 1;
   let sum = 0;
   let count = 0;

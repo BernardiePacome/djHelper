@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, inject, input, output, signal } from '@angular/core';
-import { SavedSetsService } from './saved-sets.service';
+import { SavedSetsService } from '../../app/services/saved-sets.service';
 import { SavedSet, LoadedSet } from '../../interfaces/saved-set';
 
 export function formatBytes(bytes: number): string {

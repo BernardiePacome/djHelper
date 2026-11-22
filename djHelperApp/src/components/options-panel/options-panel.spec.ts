@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { PlaybackOptionsService } from './playback-options.service';
+import { PlaybackOptionsService } from '../../app/services/playback-options.service';
 import { OptionsPanel } from './options-panel';
 
 describe('OptionsPanel', () => {
@@ -10,7 +10,7 @@ describe('OptionsPanel', () => {
     }).compileComponents();
   });
 
-  it('sets the crossfade duration between 0s and 0.2s', () => {
+  it('sets the crossfade duration between 0s and 5s', () => {
     const fixture = TestBed.createComponent(OptionsPanel);
     fixture.detectChanges();
     const slider = fixture.nativeElement.querySelector(
@@ -19,7 +19,7 @@ describe('OptionsPanel', () => {
     const options = TestBed.inject(PlaybackOptionsService);
 
     expect(slider.min).toBe('0');
-    expect(slider.max).toBe('0.2');
+    expect(slider.max).toBe('5');
     expect(fixture.nativeElement.textContent).not.toMatch(/\b[AB]\b/);
 
     slider.value = '0.05';

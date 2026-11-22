@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSameFile } from './same-file';
+import { isSameAudio, isSameFile } from './same-file';
 
 describe('isSameFile', () => {
   const file = (name = 'mix.mp3', content = 'audio', lastModified = 1) =>
@@ -25,5 +25,23 @@ describe('isSameFile', () => {
 
   it('does not match files with a different modification time', () => {
     expect(isSameFile(file('mix.mp3', 'audio', 1), file('mix.mp3', 'audio', 2))).toBe(false);
+  });
+});
+
+describe('isSameAudio', () => {
+  it('ignores the modification time', () => {
+    expect(
+      isSameAudio(
+        new File(['audio'], 'mix.mp3', { lastModified: 1 }),
+        new File(['audio'], 'mix.mp3', { lastModified: 2 }),
+      ),
+    ).toBe(true);
+  });
+
+  it('does not match another name or size', () => {
+    const mix = new File(['audio'], 'mix.mp3');
+
+    expect(isSameAudio(mix, new File(['audio'], 'other.mp3'))).toBe(false);
+    expect(isSameAudio(mix, new File(['longer audio'], 'mix.mp3'))).toBe(false);
   });
 });

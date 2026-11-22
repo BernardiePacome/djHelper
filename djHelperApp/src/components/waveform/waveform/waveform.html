@@ -23,7 +23,7 @@
       (pause)="onAudioPause()"
       (timeupdate)="onAudioTimeUpdate(audioPlayer)"
       (ended)="onAudioEnded()"
-      (error)="playbackError.set('Unable to play this audio file.')"
+      (error)="onAudioError()"
       hidden
     ></audio>
     <div class="player-controls">

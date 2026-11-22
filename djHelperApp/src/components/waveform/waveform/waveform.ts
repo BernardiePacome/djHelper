@@ -11,13 +11,35 @@ import {
   viewChild,
 } from '@angular/core';
 import { ElementRef } from '@angular/core';
-import { PlaybackOptionsService } from '../../options-panel/playback-options.service';
+import { WaveformCache, WaveformData } from '../waveform-cache';
+import { PlaybackOptionsService } from '../../../app/services/playback-options.service';
 import { isSameFile } from '../../../helpers/same-file/same-file';
-import { ActivePlayer } from '../active-player';
+import { ActivePlayers } from '../active-players';
 import { analyzeMp3 } from '../mp3-waveform/mp3-waveform';
 import { PlaybackIcon } from '../playback-icon/playback-icon';
 import { TrackTooltipText } from '../track-tooltip-text/track-tooltip-text';
 import { CueMarker, PositionedCueMarker } from '../../../interfaces/set-track';
+
+interface SeekFade {
+  outgoing: HTMLAudioElement;
+  stop: () => void;
+}
+
+// Fades run on timers, not animation frames: browsers stop frames for tabs that are not being painted,
+// which would freeze a crossfade halfway.
+const FADE_TICK_MS = 10;
+
+function runRamp(durationMs: number, onProgress: (progress: number) => void): () => void {
+  const startTime = performance.now();
+  const timer = setInterval(() => {
+    const progress = Math.min(1, (performance.now() - startTime) / durationMs);
+    onProgress(progress);
+    if (progress >= 1) {
+      clearInterval(timer);
+    }
+  }, FADE_TICK_MS);
+  return () => clearInterval(timer);
+}
 
 @Component({
   selector: 'app-waveform',
@@ -31,8 +53,9 @@ export class Waveform {
   public constructor() {
     inject(DestroyRef).onDestroy(() => {
       this.loadId++;
-      this.fadeId++;
       this.stopPlaybackFrame();
+      this.cancelVolumeFades();
+      this.activePlayers.deactivate(this.clipId);
       this.revokeAudioSource();
     });
 
@@ -41,18 +64,32 @@ export class Waveform {
       untracked(() => void this.loadWaveform(file));
     });
 
+    // A set saved after its waveform was analyzed uploads that waveform to the server cache.
     effect(() => {
-      const activeId = this.activePlayer.activeId();
-      const audio = this.audioPlayer()?.nativeElement;
-      if (activeId !== this.clipId && audio && !audio.paused) {
-        untracked(() => void this.fadeOutAndPause(audio));
-      }
+      const cacheId = this.cacheFileId();
+      untracked(() => {
+        const activeFile = this.activeFile();
+        if (
+          cacheId &&
+          cacheId !== this.cachedFileId &&
+          activeFile &&
+          isSameFile(activeFile, this.file()) &&
+          this.peaks().length > 0
+        ) {
+          this.cachedFileId = cacheId;
+          void this.waveformCache.store(cacheId, {
+            peaks: this.peaks(),
+            duration: this.duration(),
+          });
+        }
+      });
     });
   }
   protected readonly playbackOptions = inject(PlaybackOptionsService);
-  private readonly activePlayer = inject(ActivePlayer);
+  private readonly activePlayers = inject(ActivePlayers);
+  private readonly waveformCache = inject(WaveformCache);
+  private cachedFileId: string | null = null;
   private readonly audioPlayer = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
-  private fadeId = 0;
   // Constants
   private readonly tooltipSeparationThreshold = 36;
   private readonly barCount = 400;
@@ -62,6 +99,8 @@ export class Waveform {
   // Inputs
   public readonly file = input.required<File>();
   public readonly trackMarkers = input<CueMarker[]>([]);
+  // Id of the saved audio file on the server, which caches its waveform.
+  public readonly cacheFileId = input<string | null>(null);
   public readonly canSave = input(false);
   public readonly isSaving = input(false);
   public readonly isSaved = input(false);
@@ -72,6 +111,8 @@ export class Waveform {
   private currentAudioUrl: string | null = null;
   public readonly activeFile = signal<File | null>(null);
   private playbackFrameId: number | null = null;
+  private readonly seekFades = new Set<SeekFade>();
+  private stopMainFade: (() => void) | null = null;
   private readonly pinnedMarker = signal<PositionedCueMarker | null>(null);
 
   // The current player keeps running while a new file is analyzed; it is only swapped once decoding succeeds.
@@ -88,30 +129,9 @@ export class Waveform {
     this.isLoading.set(true);
 
     try {
-      let analysis: { peaks: number[]; duration: number } | null;
-      if (/\.mp3$/i.test(file.name)) {
-        analysis = await analyzeMp3(file, this.barCount, () => loadId === this.loadId);
-      } else {
-        const arrayBuffer = await file.arrayBuffer();
-        if (loadId !== this.loadId) {
-          return;
-        }
-
-        const audioContext = new OfflineAudioContext(1, 1, 44100);
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        const channelData = audioBuffer.getChannelData(0);
-        if (
-          channelData.length === 0 ||
-          !Number.isFinite(audioBuffer.duration) ||
-          audioBuffer.duration <= 0
-        ) {
-          throw new Error('Audio contains no samples');
-        }
-        analysis = {
-          peaks: this.extractPeaks(channelData, this.barCount),
-          duration: audioBuffer.duration,
-        };
-      }
+      const cacheId = this.cacheFileId();
+      const cached = cacheId ? await this.waveformCache.load(cacheId) : null;
+      const analysis = cached ?? (await this.analyzeFile(file, loadId));
       if (!analysis || loadId !== this.loadId) {
         return;
       }
@@ -127,6 +147,12 @@ export class Waveform {
       this.playbackError.set('');
       this.duration.set(analysis.duration);
       this.peaks.set(analysis.peaks);
+      if (cacheId && cacheId !== this.cachedFileId) {
+        this.cachedFileId = cacheId;
+        if (!cached) {
+          void this.waveformCache.store(cacheId, analysis);
+        }
+      }
     } catch (error) {
       if (loadId === this.loadId) {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -137,6 +163,32 @@ export class Waveform {
         this.isLoading.set(false);
       }
     }
+  }
+
+  private async analyzeFile(file: File, loadId: number): Promise<WaveformData | null> {
+    if (/\.mp3$/i.test(file.name)) {
+      return analyzeMp3(file, this.barCount, () => loadId === this.loadId);
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    if (loadId !== this.loadId) {
+      return null;
+    }
+
+    const audioContext = new OfflineAudioContext(1, 1, 44100);
+    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    const channelData = audioBuffer.getChannelData(0);
+    if (
+      channelData.length === 0 ||
+      !Number.isFinite(audioBuffer.duration) ||
+      audioBuffer.duration <= 0
+    ) {
+      throw new Error('Audio contains no samples');
+    }
+    return {
+      peaks: this.extractPeaks(channelData, this.barCount),
+      duration: audioBuffer.duration,
+    };
   }
 
   private extractPeaks(channelData: Float32Array, barCount: number): number[] {
@@ -153,45 +205,6 @@ export class Waveform {
     }
     const max = Math.max(...peaks, Number.EPSILON);
     return peaks.map((p) => p / max);
-  }
-
-  // Ramps the element volume; a newer fade cancels an older one. Resolves false when superseded.
-  private async fadeTo(audio: HTMLAudioElement, target: number): Promise<boolean> {
-    const fadeId = ++this.fadeId;
-    const durationMs = this.playbackOptions.fadeSeconds() * 1000;
-    const start = audio.volume;
-
-    if (durationMs <= 0 || start === target) {
-      audio.volume = target;
-      return true;
-    }
-
-    const startedAt = performance.now();
-    while (true) {
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      if (fadeId !== this.fadeId) {
-        return false;
-      }
-      const progress = Math.min(1, (performance.now() - startedAt) / durationMs);
-      audio.volume = start + (target - start) * progress;
-      if (progress >= 1) {
-        return true;
-      }
-    }
-  }
-
-  private async fadeIn(audio: HTMLAudioElement): Promise<void> {
-    if (this.playbackOptions.fadeSeconds() > 0) {
-      audio.volume = 0;
-    }
-    await this.fadeTo(audio, 1);
-  }
-
-  private async fadeOutAndPause(audio: HTMLAudioElement): Promise<void> {
-    if (await this.fadeTo(audio, 0)) {
-      audio.pause();
-      audio.volume = 1;
-    }
   }
 
   private revokeAudioSource(): void {
@@ -344,16 +357,13 @@ export class Waveform {
   public async togglePlayback(audio: HTMLAudioElement): Promise<void> {
     this.playbackError.set('');
     if (!audio.paused) {
-      await this.fadeOutAndPause(audio);
+      audio.pause();
+      this.onAudioPause();
       return;
     }
 
     try {
-      if (this.playbackOptions.fadeSeconds() > 0) {
-        audio.volume = 0;
-      }
       await audio.play();
-      void this.fadeTo(audio, 1);
     } catch (error) {
       this.playbackError.set(
         error instanceof Error
@@ -368,12 +378,20 @@ export class Waveform {
   }
 
   public onAudioPlay(audio: HTMLAudioElement): void {
-    this.activePlayer.activeId.set(this.clipId);
+    this.cancelVolumeFades();
+    audio.volume = 1;
+    // Starting a player fades the others out while this one fades in.
+    const crossfading = this.activePlayers.activate(this.clipId, () => this.fadeOutAndPause());
+    if (crossfading) {
+      this.fadeVolume(audio, 0, 1, () => undefined);
+    }
     this.isPlaying.set(true);
     this.updatePlaybackFrame(audio);
   }
 
   public onAudioPause(): void {
+    this.cancelVolumeFades();
+    this.activePlayers.deactivate(this.clipId);
     this.isPlaying.set(false);
     this.stopPlaybackFrame();
   }
@@ -383,20 +401,98 @@ export class Waveform {
     if (!audio || !Number.isFinite(time) || time < 0 || time > this.duration()) {
       return;
     }
-    await this.seekToPosition(audio, time);
+    await this.seekToPosition(audio, time, false);
   }
 
-  private async seekToPosition(audio: HTMLAudioElement, time: number): Promise<void> {
-    const wasPlaying = !audio.paused;
-    if (wasPlaying && !(await this.fadeTo(audio, 0))) {
-      return;
+  // Only the Previous/Next Transition buttons crossfade; clicks on the waveform or the playlist jump directly.
+  private async seekToPosition(
+    audio: HTMLAudioElement,
+    time: number,
+    crossfade = true,
+  ): Promise<void> {
+    const durationMs = this.playbackOptions.crossfadeMs();
+    if (crossfade && !audio.paused && durationMs > 0 && this.currentAudioUrl) {
+      this.startSeekCrossfade(audio, time, durationMs);
+    } else {
+      this.cancelVolumeFades();
+      audio.volume = 1;
+      audio.currentTime = time;
     }
-    audio.currentTime = time;
     this.currentTime.set(audio.currentTime);
     this.pinnedMarker.set(null);
-    if (wasPlaying) {
-      await this.fadeIn(audio);
+  }
+
+  // A (the old position) keeps playing on a temporary copy of the track and fades out linearly
+  // while B (the player, moved to the target) fades in linearly.
+  private startSeekCrossfade(audio: HTMLAudioElement, time: number, durationMs: number): void {
+    const startVolume = audio.volume;
+    const outgoing = new Audio(this.currentAudioUrl as string);
+    outgoing.currentTime = audio.currentTime;
+    outgoing.volume = startVolume;
+    try {
+      void Promise.resolve(outgoing.play()).catch(() => undefined);
+    } catch {
+      // The incoming player still fades in if the outgoing copy cannot play.
     }
+
+    this.cancelMainFade();
+    audio.currentTime = time;
+    this.fadeVolume(audio, 0, 1, () => undefined);
+
+    const fade: SeekFade = { outgoing, stop: () => undefined };
+    this.seekFades.add(fade);
+    fade.stop = runRamp(durationMs, (progress) => {
+      outgoing.volume = startVolume * (1 - progress);
+      if (progress >= 1) {
+        this.endSeekFade(fade);
+      }
+    });
+  }
+
+  private fadeOutAndPause(): void {
+    const audio = this.audioPlayer()?.nativeElement;
+    if (!audio || audio.paused) {
+      return;
+    }
+    this.fadeVolume(audio, audio.volume, 0, () => {
+      audio.pause();
+      audio.volume = 1;
+    });
+  }
+
+  private fadeVolume(audio: HTMLAudioElement, from: number, to: number, onDone: () => void): void {
+    this.cancelMainFade();
+    const durationMs = this.playbackOptions.crossfadeMs();
+    if (durationMs <= 0) {
+      audio.volume = to;
+      onDone();
+      return;
+    }
+
+    audio.volume = from;
+    this.stopMainFade = runRamp(durationMs, (progress) => {
+      audio.volume = from + (to - from) * progress;
+      if (progress >= 1) {
+        this.stopMainFade = null;
+        onDone();
+      }
+    });
+  }
+
+  private cancelMainFade(): void {
+    this.stopMainFade?.();
+    this.stopMainFade = null;
+  }
+
+  private cancelVolumeFades(): void {
+    this.cancelMainFade();
+    [...this.seekFades].forEach((fade) => this.endSeekFade(fade));
+  }
+
+  private endSeekFade(fade: SeekFade): void {
+    fade.stop();
+    fade.outgoing.pause();
+    this.seekFades.delete(fade);
   }
 
   public async skipToCue(audio: HTMLAudioElement, direction: 'previous' | 'next'): Promise<void> {
@@ -419,6 +515,11 @@ export class Waveform {
   }
 
   public onAudioEnded(): void {
+    this.onAudioPause();
+  }
+
+  public onAudioError(): void {
+    this.playbackError.set('Unable to play this audio file.');
     this.onAudioPause();
   }
 

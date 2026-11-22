@@ -13,7 +13,7 @@ h2 {
   font-size: 1.1rem;
 }
 
-.fader {
+.crossfader {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -22,8 +22,12 @@ h2 {
     flex: 1;
   }
 
+  .range-label {
+    font-weight: 700;
+  }
+
   output {
-    min-width: 4ch;
+    min-width: 6ch;
     text-align: right;
   }
 }
@@ -35,7 +39,7 @@ h2 {
   gap: 24px;
   flex-wrap: wrap;
 
-  .fader {
+  .crossfader {
     flex: 1;
     min-width: 260px;
   }

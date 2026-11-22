@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { PlaybackOptionsService } from './playback-options.service';
+import { PlaybackOptionsService } from '../../app/services/playback-options.service';
 
 @Component({
   selector: 'app-options-panel',
@@ -10,7 +10,7 @@ import { PlaybackOptionsService } from './playback-options.service';
 export class OptionsPanel {
   protected readonly options = inject(PlaybackOptionsService);
 
-  protected onFadeInput(event: Event): void {
-    this.options.fadeSeconds.set(Number((event.target as HTMLInputElement).value));
+  protected onCrossfadeDurationInput(event: Event): void {
+    this.options.crossfadeDuration.set(Number((event.target as HTMLInputElement).value));
   }
 }

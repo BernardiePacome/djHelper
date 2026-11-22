@@ -5,11 +5,11 @@ import { CueFileDropzone } from '../components/cue-file-dropzone/cue-file-dropzo
 import { OptionsPanel } from '../components/options-panel/options-panel';
 import { PlaylistOutput } from '../components/playlist-output/playlist-output';
 import { SavedSets } from '../components/saved-sets/saved-sets';
-import { SavedSetsService } from '../components/saved-sets/saved-sets.service';
+import { SavedSetsService } from './services/saved-sets.service';
 import { SearchBar } from '../components/search-bar/search-bar';
 import { TrackList } from '../components/track-list/track-list';
 import { Waveform } from '../components/waveform/waveform/waveform';
-import { isSameFile } from '../helpers/same-file/same-file';
+import { isSameAudio } from '../helpers/same-file/same-file';
 import { isMockModeUrl } from '../mocks/mock-mode';
 import { LoadedMix } from '../interfaces/loaded-mix';
 import { ParsedCue } from '../interfaces/parsed-cue';
@@ -62,6 +62,12 @@ export class App {
     return id !== null && this.savedSets.sets().some((set) => set.id === id);
   }
 
+  // Only audio stored on the server has a waveform cache; browser-local fallback sets do not.
+  public cacheFileId(mix: LoadedMix): string | null {
+    const id = this.savedSets.sets().find((set) => set.id === mix.savedSetId)?.audio.id ?? null;
+    return id !== null && !id.startsWith('local-') ? id : null;
+  }
+
   public async onFilesSelected(files: File[], savedSetId: string | null = null): Promise<void> {
     this.isLoadingFiles.set(true);
     this.errorMessage.set('');
@@ -106,14 +112,16 @@ export class App {
     savedSetId: string | null,
   ): void {
     const existing = audioFile
-      ? this.loadedMixes().find((mix) => mix.audioFile && isSameFile(mix.audioFile, audioFile))
+      ? this.loadedMixes().find((mix) => mix.audioFile && isSameAudio(mix.audioFile, audioFile))
       : undefined;
 
     if (existing) {
       if (cue) {
         this.loadedMixes.update((mixes) =>
           mixes.map((mix) =>
-            mix.id === existing.id ? { ...mix, cueFile, ...cue, savedSetId } : mix,
+            mix.id === existing.id
+              ? { ...mix, cueFile, ...cue, savedSetId: savedSetId ?? mix.savedSetId }
+              : mix,
           ),
         );
       }

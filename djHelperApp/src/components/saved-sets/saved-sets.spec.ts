@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { SavedSets, formatBytes } from './saved-sets';
-import { SavedSetsService } from './saved-sets.service';
+import { SavedSetsService } from '../../app/services/saved-sets.service';
 import { SavedSet, StorageUsage, SavedSetsStatus } from '../../interfaces/saved-set';
 
 const savedSet: SavedSet = {

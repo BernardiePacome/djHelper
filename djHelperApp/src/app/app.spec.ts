@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { App } from './app';
-import { SavedSetsService } from '../components/saved-sets/saved-sets.service';
+import { SavedSetsService } from './services/saved-sets.service';
 import { SavedSet } from '../interfaces/saved-set';
 
 describe('App', () => {
@@ -245,6 +245,37 @@ describe('App saved sets', () => {
     await app.onSavedSetLoaded({ set: savedSet, files: files() });
 
     expect(app.loadedMixes()).toEqual([first]);
+  });
+
+  it('links a saved set to the same audio already loaded instead of adding a duplicate', async () => {
+    sets.set([savedSet]);
+    const app = createApp();
+    await app.onFilesSelected([new File(['audio'], 'mix.mp3', { lastModified: 1 })]);
+    const [playing] = app.loadedMixes();
+
+    await app.onSavedSetLoaded({
+      set: savedSet,
+      files: [new File([cueText], 'mix.cue'), new File(['audio'], 'mix.mp3', { lastModified: 2 })],
+    });
+
+    expect(app.loadedMixes()).toHaveLength(1);
+    expect(app.loadedMixes()[0].audioFile).toBe(playing.audioFile);
+    expect(app.isSaved(app.loadedMixes()[0])).toBe(true);
+  });
+
+  it('keeps the saved link when the same cue and audio are loaded again', async () => {
+    sets.set([savedSet]);
+    const app = createApp();
+    const files = (lastModified: number) => [
+      new File([cueText], 'mix.cue'),
+      new File(['audio'], 'mix.mp3', { lastModified }),
+    ];
+    await app.onSavedSetLoaded({ set: savedSet, files: files(1) });
+
+    await app.onFilesSelected(files(2));
+
+    expect(app.loadedMixes()).toHaveLength(1);
+    expect(app.isSaved(app.loadedMixes()[0])).toBe(true);
   });
 
   it('reflects saved and removed mixes in the saved set load button', async () => {

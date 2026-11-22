@@ -2,17 +2,20 @@
   <div class="d-flex">
     <h2>Options</h2>
     <div class="options-row">
-      <label class="fader">
-        <span>Fade in / out</span>
+      <label class="crossfader">
+        <span>Crossfade</span>
+        <span class="range-label">0s</span>
         <input
           type="range"
           min="0"
-          max="1"
-          step="0.05"
-          [value]="options.fadeSeconds()"
-          (input)="onFadeInput($event)"
+          [max]="options.maxCrossfadeDuration"
+          step="0.01"
+          [value]="options.crossfadeDuration()"
+          (input)="onCrossfadeDurationInput($event)"
+          aria-label="Crossfade duration in seconds"
         />
-        <output>{{ options.fadeSeconds().toFixed(2) }} s</output>
+        <span class="range-label">{{ options.maxCrossfadeDuration }}s</span>
+        <output>{{ options.crossfadeDuration().toFixed(2) }}s</output>
       </label>
       <div class="color-picker" role="radiogroup" aria-label="Waveform color">
         <span>Waveform color</span>

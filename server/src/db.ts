@@ -37,6 +37,16 @@ export interface SetStore {
   remove(id: string): StoredSet | undefined;
 }
 
+export interface StoredWaveform {
+  peaks: number[];
+  duration: number;
+}
+
+export interface WaveformStore {
+  get(fileId: string): StoredWaveform | undefined;
+  put(fileId: string, waveform: StoredWaveform): void;
+}
+
 export function openDatabase(databasePath: string): DatabaseSync {
   const database = new DatabaseSync(databasePath);
   database.exec(`
@@ -55,6 +65,11 @@ export function openDatabase(databasePath: string): DatabaseSync {
       cue_file_id TEXT NOT NULL UNIQUE REFERENCES files(id),
       audio_file_id TEXT NOT NULL UNIQUE REFERENCES files(id),
       created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS waveforms (
+      file_id TEXT PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,
+      peaks TEXT NOT NULL,
+      duration REAL NOT NULL
     );
   `);
   return database;
@@ -166,6 +181,25 @@ export function createSetStore(database: DatabaseSync, files: FileStore): SetSto
         throw error;
       }
       return set;
+    },
+  };
+}
+
+export function createWaveformStore(database: DatabaseSync): WaveformStore {
+  const getStatement = database.prepare('SELECT peaks, duration FROM waveforms WHERE file_id = ?');
+  const putStatement = database.prepare(
+    'INSERT OR REPLACE INTO waveforms (file_id, peaks, duration) VALUES (?, ?, ?)',
+  );
+
+  return {
+    get(fileId) {
+      const row = getStatement.get(fileId);
+      return row
+        ? { peaks: JSON.parse(String(row['peaks'])) as number[], duration: Number(row['duration']) }
+        : undefined;
+    },
+    put(fileId, waveform) {
+      putStatement.run(fileId, JSON.stringify(waveform.peaks), waveform.duration);
     },
   };
 }
