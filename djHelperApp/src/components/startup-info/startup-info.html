@@ -1,0 +1,8 @@
+<div class="startup-info">
+  <p class="startup-message">Set(s) already loaded:</p>
+  <ul>
+    @for (loadedSet of sets(); track loadedSet.id) {
+      <li>{{ loadedSet.name }}</li>
+    }
+  </ul>
+</div>

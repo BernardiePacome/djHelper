@@ -1,7 +1,7 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
-import { isMockModeUrl } from './mocks/mock-mode';
+import { isMockModeUrl } from '../mocks/mock-mode';
 
 // Set up global error handlers to prevent browser-level page reloads
 window.addEventListener('error', (event) => {
@@ -16,7 +16,7 @@ window.addEventListener('unhandledrejection', (event) => {
 
 async function bootstrap(): Promise<void> {
   if (isMockModeUrl(new URL(location.href))) {
-    const { worker } = await import('./mocks/browser');
+    const { worker } = await import('../mocks/browser');
     await worker.start({ onUnhandledRequest: 'bypass' });
   }
 

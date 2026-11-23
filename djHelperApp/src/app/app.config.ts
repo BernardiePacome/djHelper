@@ -3,7 +3,7 @@ import {
   provideBrowserGlobalErrorListeners,
   APP_INITIALIZER,
 } from '@angular/core';
-import { SavedSetsService } from './services/saved-sets.service';
+import { SavedSetsService } from '../services/saved-sets.service/saved-sets.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [

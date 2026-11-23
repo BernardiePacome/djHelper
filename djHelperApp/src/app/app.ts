@@ -5,12 +5,13 @@ import { CueFileDropzone } from '../components/cue-file-dropzone/cue-file-dropzo
 import { OptionsPanel } from '../components/options-panel/options-panel';
 import { PlaylistOutput } from '../components/playlist-output/playlist-output';
 import { SavedSets } from '../components/saved-sets/saved-sets';
-import { SavedSetsService } from './services/saved-sets.service';
+import { SavedSetsService } from '../services/saved-sets.service/saved-sets.service';
 import { SearchBar } from '../components/search-bar/search-bar';
+import { StartupInfo } from '../components/startup-info/startup-info';
 import { TrackList } from '../components/track-list/track-list';
 import { Waveform } from '../components/waveform/waveform/waveform';
 import { isSameAudio } from '../helpers/same-file/same-file';
-import { isMockModeUrl } from '../mocks/mock-mode';
+import { isMockModeUrl } from '../../mocks/mock-mode';
 import { LoadedMix } from '../interfaces/loaded-mix';
 import { ParsedCue } from '../interfaces/parsed-cue';
 import { LoadedSet } from '../interfaces/saved-set';
@@ -25,6 +26,7 @@ import { SetTrack } from '../interfaces/set-track';
     PlaylistOutput,
     SavedSets,
     SearchBar,
+    StartupInfo,
     TrackList,
     Waveform,
   ],

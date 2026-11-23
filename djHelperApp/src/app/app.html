@@ -75,14 +75,7 @@
   @if (!isLoadingFiles()) {
     <section>
       @if (savedSetsReady() && loadedSetsList().length > 0) {
-        <div class="startup-info">
-          <p class="startup-message">Set(s) already loaded:</p>
-          <ul>
-            @for (loadedSet of loadedSetsList(); track loadedSet) {
-              <li>{{ loadedSet.name }}</li>
-            }
-          </ul>
-        </div>
+        <app-startup-info [sets]="loadedSetsList()" />
       }
     </section>
 

@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { PlaybackOptionsService } from '../../app/services/playback-options.service';
+import { PlaybackOptionsService } from '../../services/playback-options.service/playback-options.service';
 
 @Component({
   selector: 'app-options-panel',

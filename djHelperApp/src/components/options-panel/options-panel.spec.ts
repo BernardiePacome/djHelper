@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { PlaybackOptionsService } from '../../app/services/playback-options.service';
+import { PlaybackOptionsService } from '../../services/playback-options.service/playback-options.service';
 import { OptionsPanel } from './options-panel';
 
 describe('OptionsPanel', () => {

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { SavedSetsService } from '../../app/services/saved-sets.service';
+import { SavedSetsService } from '../../services/saved-sets.service/saved-sets.service';
 import { SearchBar } from './search-bar';
 import { SavedSet, SavedSetsStatus } from '../../interfaces/saved-set';
 
