@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { PlaybackOptionsService } from '../services/playback-options.service';
+import { PlaybackOptionsService } from '../../services/playback-options.service/playback-options.service';
 import { Waveform } from './waveform';
 import type { CueMarker } from '../../interfaces/set-track';
 

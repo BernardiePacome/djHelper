@@ -1,6 +1,6 @@
 import { Component, computed, effect, inject, output, signal } from '@angular/core';
-import { SavedSetsService } from '../../app/services/saved-sets.service';
-import { SetSearchService } from '../../app/services/set-search.service';
+import { SavedSetsService } from '../../services/saved-sets.service/saved-sets.service';
+import { SetSearchService } from '../../services/set-search.service/set-search.service';
 import { highlightMatches } from './search-text';
 import { SavedSet, LoadedSet } from '../../interfaces/saved-set';
 import { ResultRow } from '../../interfaces/search';

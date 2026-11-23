@@ -7,101 +7,27 @@ import {
   LocalSetRecord,
 } from '../../interfaces/saved-set';
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
-function isSavedFile(value: unknown): value is SavedFile {
-  return (
-    isRecord(value) &&
-    typeof value['id'] === 'string' &&
-    typeof value['name'] === 'string' &&
-    typeof value['mime'] === 'string' &&
-    typeof value['size'] === 'number' &&
-    typeof value['url'] === 'string'
-  );
-}
-
-function isSavedSet(value: unknown): value is SavedSet {
-  return (
-    isRecord(value) &&
-    typeof value['id'] === 'string' &&
-    typeof value['name'] === 'string' &&
-    typeof value['createdAt'] === 'string' &&
-    typeof value['size'] === 'number' &&
-    isSavedFile(value['cue']) &&
-    isSavedFile(value['audio'])
-  );
-}
-
-function isStorageUsage(value: unknown): value is StorageUsage {
-  return (
-    isRecord(value) &&
-    typeof value['usedBytes'] === 'number' &&
-    typeof value['quotaBytes'] === 'number' &&
-    typeof value['availableBytes'] === 'number'
-  );
-}
-
-function fileExtension(fileName: string): string {
-  return /\.[^./\\]+$/.exec(fileName)?.[0].toLowerCase() ?? '';
-}
-
-function renamedFile(file: File, name: string): File {
-  return file.name === name
-    ? file
-    : new File([file], name, { type: file.type, lastModified: file.lastModified });
-}
-
-async function readError(response: Response): Promise<string> {
-  try {
-    const body: unknown = await response.json();
-    if (isRecord(body) && typeof body['error'] === 'string') {
-      return body['error'];
-    }
-  } catch {
-    // The body was not JSON (e.g. an HTML error page); fall through to the status code.
-  }
-
-  return `Request failed (${response.status})`;
-}
-
-async function requestJson(url: string, init?: RequestInit): Promise<unknown> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout for slower networks
-
-  try {
-    const response = await fetch(url, { ...init, signal: controller.signal });
-    if (!response.ok) {
-      throw new Error(await readError(response));
-    }
-
-    return response.json();
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 @Injectable({ providedIn: 'root' })
 export class SavedSetsService {
   public readonly sets = signal<SavedSet[]>([]);
   public readonly storage = signal<StorageUsage | null>(null);
   public readonly status = signal<SavedSetsStatus>('loading');
+
   private backend: 'server' | 'local' = 'server';
   private readonly localUrls = new Map<string, string[]>();
 
   public async refresh(): Promise<void> {
     try {
       const [setsBody, storageBody] = await Promise.all([
-        requestJson('/api/sets'),
-        requestJson('/api/storage'),
+        this.requestJson('/api/sets'),
+        this.requestJson('/api/storage'),
       ]);
 
       if (
-        !isRecord(setsBody) ||
+        !this.isRecord(setsBody) ||
         !Array.isArray(setsBody['sets']) ||
-        !setsBody['sets'].every(isSavedSet) ||
-        !isStorageUsage(storageBody)
+        !setsBody['sets'].every((set) => this.isSavedSet(set)) ||
+        !this.isStorageUsage(storageBody)
       ) {
         throw new Error('Unexpected response from the server');
       }
@@ -130,19 +56,19 @@ export class SavedSetsService {
 
     try {
       // Both files share the set name; only their extensions differ (.cue and the audio's own format).
-      const cue = await this.upload(renamedFile(cueFile, `${name}.cue`));
+      const cue = await this.upload(this.renamedFile(cueFile, `${name}.cue`));
       uploadedIds.push(cue.id);
       const audio = await this.upload(
-        renamedFile(audioFile, `${name}${fileExtension(audioFile.name)}`),
+        this.renamedFile(audioFile, `${name}${this.fileExtension(audioFile.name)}`),
       );
       uploadedIds.push(audio.id);
 
-      const body = await requestJson('/api/sets', {
+      const body = await this.requestJson('/api/sets', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ name, cueFileId: cue.id, audioFileId: audio.id }),
       });
-      if (!isSavedSet(body)) {
+      if (!this.isSavedSet(body)) {
         throw new Error('Unexpected response from the server');
       }
 
@@ -168,7 +94,7 @@ export class SavedSetsService {
 
     const response = await fetch(`/api/sets/${set.id}`, { method: 'DELETE' });
     if (!response.ok && response.status !== 404) {
-      throw new Error(await readError(response));
+      throw new Error(await this.readError(response));
     }
 
     this.sets.update((sets) => sets.filter(({ id }) => id !== set.id));
@@ -210,7 +136,7 @@ export class SavedSetsService {
       },
       audio: {
         id: `${id}-audio`,
-        name: `${name}${fileExtension(audioFile.name)}`,
+        name: `${name}${this.fileExtension(audioFile.name)}`,
         mime: audioFile.type || 'application/octet-stream',
         size: audioFile.size,
         blob: audioFile,
@@ -330,8 +256,8 @@ export class SavedSetsService {
     const form = new FormData();
     form.append('file', file, file.name);
 
-    const body = await requestJson('/api/files', { method: 'POST', body: form });
-    if (!isSavedFile(body)) {
+    const body = await this.requestJson('/api/files', { method: 'POST', body: form });
+    if (!this.isSavedFile(body)) {
       throw new Error('Unexpected response from the server');
     }
 
@@ -340,12 +266,87 @@ export class SavedSetsService {
 
   private async refreshStorage(): Promise<void> {
     try {
-      const body = await requestJson('/api/storage');
-      if (isStorageUsage(body)) {
+      const body = await this.requestJson('/api/storage');
+      if (this.isStorageUsage(body)) {
         this.storage.set(body);
       }
     } catch {
       // The usage figure is informational; keep the previous value.
+    }
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+  }
+
+  private isSavedFile(value: unknown): value is SavedFile {
+    return (
+      this.isRecord(value) &&
+      typeof value['id'] === 'string' &&
+      typeof value['name'] === 'string' &&
+      typeof value['mime'] === 'string' &&
+      typeof value['size'] === 'number' &&
+      typeof value['url'] === 'string'
+    );
+  }
+
+  private isSavedSet(value: unknown): value is SavedSet {
+    return (
+      this.isRecord(value) &&
+      typeof value['id'] === 'string' &&
+      typeof value['name'] === 'string' &&
+      typeof value['createdAt'] === 'string' &&
+      typeof value['size'] === 'number' &&
+      this.isSavedFile(value['cue']) &&
+      this.isSavedFile(value['audio'])
+    );
+  }
+
+  private isStorageUsage(value: unknown): value is StorageUsage {
+    return (
+      this.isRecord(value) &&
+      typeof value['usedBytes'] === 'number' &&
+      typeof value['quotaBytes'] === 'number' &&
+      typeof value['availableBytes'] === 'number'
+    );
+  }
+
+  private fileExtension(fileName: string): string {
+    return /\.[^./\\]+$/.exec(fileName)?.[0].toLowerCase() ?? '';
+  }
+
+  private renamedFile(file: File, name: string): File {
+    return file.name === name
+      ? file
+      : new File([file], name, { type: file.type, lastModified: file.lastModified });
+  }
+
+  private async readError(response: Response): Promise<string> {
+    try {
+      const body: unknown = await response.json();
+      if (this.isRecord(body) && typeof body['error'] === 'string') {
+        return body['error'];
+      }
+    } catch {
+      // The body was not JSON (e.g. an HTML error page); fall through to the status code.
+    }
+
+    return `Request failed (${response.status})`;
+  }
+
+  private async requestJson(url: string, init?: RequestInit): Promise<unknown> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30 second timeout for slower networks
+
+    try {
+      const response = await fetch(url, { ...init, signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(await this.readError(response));
+      }
+
+      return response.json();
+    } finally {
+      clearTimeout(timeout);
     }
   }
 }

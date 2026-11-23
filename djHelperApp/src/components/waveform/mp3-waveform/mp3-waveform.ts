@@ -1,4 +1,4 @@
-import { EnergyBucket } from '../../../interfaces/energy-bucket';
+import { SampleEnergyBucket } from '../../../interfaces/sample-energy-bucket';
 
 const CHUNK_SIZE = 64 * 1024;
 
@@ -13,7 +13,7 @@ export async function analyzeMp3(
   }
 
   const decoder = new MPEGDecoder();
-  const buckets: EnergyBucket[] = [];
+  const buckets: SampleEnergyBucket[] = [];
 
   let bucketSize = 1;
   let sum = 0;

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { App } from './app';
-import { SavedSetsService } from './services/saved-sets.service';
+import { SavedSetsService } from '../services/saved-sets.service/saved-sets.service';
 import { SavedSet } from '../interfaces/saved-set';
 
 describe('App', () => {

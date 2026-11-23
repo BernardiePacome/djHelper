@@ -75,11 +75,7 @@
   @if (!isLoadingFiles()) {
     <section>
       @if (savedSetsReady() && loadedSetsList().length > 0) {
-        <div class="startup-info">
-          <p class="startup-message">
-            {{ loadedSetsList().length }} set(s) already loaded: {{ loadedSetsList().join(', ') }}
-          </p>
-        </div>
+        <app-startup-info [sets]="loadedSetsList()" />
       }
     </section>
 

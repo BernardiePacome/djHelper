@@ -32,19 +32,6 @@ h2 {
   }
 }
 
-.options-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-
-  .crossfader {
-    flex: 1;
-    min-width: 260px;
-  }
-}
-
 .color-picker {
   display: flex;
   align-items: center;

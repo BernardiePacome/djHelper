@@ -11,12 +11,12 @@ import {
   viewChild,
 } from '@angular/core';
 import { ElementRef } from '@angular/core';
-import { WaveformCache, WaveformData } from '../waveform-cache';
-import { PlaybackOptionsService } from '../../../app/services/playback-options.service';
+import { WaveformCache, WaveformData } from '../../../services/waveform-cache/waveform-cache';
+import { PlaybackOptionsService } from '../../../services/playback-options.service/playback-options.service';
 import { isSameFile } from '../../../helpers/same-file/same-file';
-import { ActivePlayers } from '../active-players';
+import { ActivePlayerService } from '../../../services/active-player-service/active-player-service';
 import { analyzeMp3 } from '../mp3-waveform/mp3-waveform';
-import { PlaybackIcon } from '../playback-icon/playback-icon';
+import { PlaybackIcon } from '../playback-buttons/playback-icon';
 import { TrackTooltipText } from '../track-tooltip-text/track-tooltip-text';
 import { CueMarker, PositionedCueMarker } from '../../../interfaces/set-track';
 
@@ -49,6 +49,36 @@ function runRamp(durationMs: number, onProgress: (progress: number) => void): ()
   styleUrl: './waveform.scss',
 })
 export class Waveform {
+  protected readonly playbackOptions = inject(PlaybackOptionsService);
+  private readonly activePlayers = inject(ActivePlayerService);
+  private readonly waveformCache = inject(WaveformCache);
+  private cachedFileId: string | null = null;
+  private readonly audioPlayer = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
+  // Constants
+  private readonly tooltipSeparationThreshold = 36;
+  private readonly barCount = 400;
+  private readonly previousCueLeadSeconds = 2;
+  private static nextInstanceId = 0;
+  protected readonly clipId = `waveform-clip-${Waveform.nextInstanceId++}`;
+  // Inputs
+  public readonly file = input.required<File>();
+  public readonly trackMarkers = input<CueMarker[]>([]);
+  // Id of the saved audio file on the server, which caches its waveform.
+  public readonly cacheFileId = input<string | null>(null);
+  public readonly canSave = input(false);
+  public readonly isSaving = input(false);
+  public readonly isSaved = input(false);
+  public readonly saveRequested = output<void>();
+  // Signals
+  private readonly hoveredMarker = signal<PositionedCueMarker | null>(null);
+  private loadId = 0;
+  private currentAudioUrl: string | null = null;
+  public readonly activeFile = signal<File | null>(null);
+  private playbackFrameId: number | null = null;
+  private readonly seekFades = new Set<SeekFade>();
+  private stopMainFade: (() => void) | null = null;
+  private readonly pinnedMarker = signal<PositionedCueMarker | null>(null);
+
   // Constructor
   public constructor() {
     inject(DestroyRef).onDestroy(() => {
@@ -85,35 +115,6 @@ export class Waveform {
       });
     });
   }
-  protected readonly playbackOptions = inject(PlaybackOptionsService);
-  private readonly activePlayers = inject(ActivePlayers);
-  private readonly waveformCache = inject(WaveformCache);
-  private cachedFileId: string | null = null;
-  private readonly audioPlayer = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
-  // Constants
-  private readonly tooltipSeparationThreshold = 36;
-  private readonly barCount = 400;
-  private readonly previousCueLeadSeconds = 2;
-  private static nextInstanceId = 0;
-  protected readonly clipId = `waveform-clip-${Waveform.nextInstanceId++}`;
-  // Inputs
-  public readonly file = input.required<File>();
-  public readonly trackMarkers = input<CueMarker[]>([]);
-  // Id of the saved audio file on the server, which caches its waveform.
-  public readonly cacheFileId = input<string | null>(null);
-  public readonly canSave = input(false);
-  public readonly isSaving = input(false);
-  public readonly isSaved = input(false);
-  public readonly saveRequested = output<void>();
-  // Signals
-  private readonly hoveredMarker = signal<PositionedCueMarker | null>(null);
-  private loadId = 0;
-  private currentAudioUrl: string | null = null;
-  public readonly activeFile = signal<File | null>(null);
-  private playbackFrameId: number | null = null;
-  private readonly seekFades = new Set<SeekFade>();
-  private stopMainFade: (() => void) | null = null;
-  private readonly pinnedMarker = signal<PositionedCueMarker | null>(null);
 
   // The current player keeps running while a new file is analyzed; it is only swapped once decoding succeeds.
   private async loadWaveform(file: File): Promise<void> {

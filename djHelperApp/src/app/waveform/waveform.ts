@@ -11,12 +11,12 @@ import {
   viewChild,
 } from '@angular/core';
 import { ElementRef } from '@angular/core';
-import { WaveformCache, WaveformData } from '../../components/waveform/waveform-cache';
-import { PlaybackOptionsService } from '../services/playback-options.service';
+import { WaveformCache, WaveformData } from '../../services/waveform-cache/waveform-cache';
+import { PlaybackOptionsService } from '../../services/playback-options.service/playback-options.service';
 import { isSameFile } from '../../helpers/same-file/same-file';
-import { ActivePlayers } from '../../components/waveform/active-players';
+import { ActivePlayerService } from '../../services/active-player-service/active-player-service';
 import { analyzeMp3 } from '../../components/waveform/mp3-waveform/mp3-waveform';
-import { PlaybackIcon } from '../../components/waveform/playback-icon/playback-icon';
+import { PlaybackIcon } from '../../components/waveform/playback-buttons/playback-icon';
 import { TrackTooltipText } from '../../components/waveform/track-tooltip-text/track-tooltip-text';
 import { CueMarker, PositionedCueMarker } from '../../interfaces/set-track';
 
@@ -65,7 +65,7 @@ export class Waveform {
     });
   }
   protected readonly playbackOptions = inject(PlaybackOptionsService);
-  private readonly activePlayers = inject(ActivePlayers);
+  private readonly activePlayers = inject(ActivePlayerService);
   private readonly waveformCache = inject(WaveformCache);
   private cachedFileId: string | null = null;
   private readonly audioPlayer = viewChild<ElementRef<HTMLAudioElement>>('audioPlayer');
