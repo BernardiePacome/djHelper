@@ -135,5 +135,3 @@ server/data/*
 # Desktop (macOS app) build output
 desktop/build/
 **/.DS_Store
-.DS_Store
-desktop/.DS_Store
