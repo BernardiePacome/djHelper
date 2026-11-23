@@ -1,17 +1,20 @@
 name: CI
 
+# Runs on pull requests and is reused by the CI / CD workflow (cd.yml) for pushes to main.
 on:
-  push:
-    branches:
-      - main
-      - master
   pull_request:
+  workflow_call:
+    inputs:
+      publish:
+        description: Upload the production web build as the GitHub Pages artifact.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: github-pages
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -44,7 +47,7 @@ jobs:
         run: npm run build -- --base-href /djHelper/
 
       - name: Upload GitHub Pages artifact
-        if: github.event_name == 'push'
+        if: inputs.publish
         uses: actions/upload-pages-artifact@v3
         with:
           path: djHelperApp/dist/djHelperApp/browser/
@@ -76,18 +79,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-  deploy:
-    if: github.event_name == 'push'
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
