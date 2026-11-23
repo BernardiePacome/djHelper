@@ -8,9 +8,9 @@ import { PlaybackOptionsService } from '../../services/playback-options.service/
   styleUrl: './options-panel.scss',
 })
 export class OptionsPanel {
-  protected readonly options = inject(PlaybackOptionsService);
+  protected readonly playbackOptionsService = inject(PlaybackOptionsService);
 
   protected onCrossfadeDurationInput(event: Event): void {
-    this.options.crossfadeDuration.set(Number((event.target as HTMLInputElement).value));
+    this.playbackOptionsService.crossfadeDuration.set(Number((event.target as HTMLInputElement).value));
   }
 }
