@@ -9,7 +9,7 @@ export class ActivePlayerService {
     const otherPlayers = [...this.fadeOuts].filter(([id]) => id !== playerId);
     this.fadeOuts.set(playerId, fadeOut);
     otherPlayers.forEach(([, fadeOutOther]) => fadeOutOther());
-    
+
     return otherPlayers.length > 0;
   }
 

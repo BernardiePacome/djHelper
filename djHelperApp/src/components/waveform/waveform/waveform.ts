@@ -48,9 +48,6 @@ function runRamp(durationMs: number, onProgress: (progress: number) => void): ()
   templateUrl: './waveform.html',
   styleUrl: './waveform.scss',
 })
-
-
-
 export class Waveform {
   protected readonly playbackOptions = inject(PlaybackOptionsService);
   private readonly activePlayers = inject(ActivePlayerService);
@@ -81,7 +78,7 @@ export class Waveform {
   private readonly seekFades = new Set<SeekFade>();
   private stopMainFade: (() => void) | null = null;
   private readonly pinnedMarker = signal<PositionedCueMarker | null>(null);
-  
+
   // Constructor
   public constructor() {
     inject(DestroyRef).onDestroy(() => {
@@ -118,7 +115,6 @@ export class Waveform {
       });
     });
   }
-  
 
   // The current player keeps running while a new file is analyzed; it is only swapped once decoding succeeds.
   private async loadWaveform(file: File): Promise<void> {

@@ -11,6 +11,8 @@ export class OptionsPanel {
   protected readonly playbackOptionsService = inject(PlaybackOptionsService);
 
   protected onCrossfadeDurationInput(event: Event): void {
-    this.playbackOptionsService.crossfadeDuration.set(Number((event.target as HTMLInputElement).value));
+    this.playbackOptionsService.crossfadeDuration.set(
+      Number((event.target as HTMLInputElement).value),
+    );
   }
 }

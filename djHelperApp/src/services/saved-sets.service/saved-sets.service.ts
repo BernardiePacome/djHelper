@@ -12,7 +12,7 @@ export class SavedSetsService {
   public readonly sets = signal<SavedSet[]>([]);
   public readonly storage = signal<StorageUsage | null>(null);
   public readonly status = signal<SavedSetsStatus>('loading');
-  
+
   private backend: 'server' | 'local' = 'server';
   private readonly localUrls = new Map<string, string[]>();
 
