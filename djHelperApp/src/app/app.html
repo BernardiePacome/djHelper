@@ -22,9 +22,13 @@
     />
 
     @if (isLoadingFiles()) {
-      <p class="loading-message" role="status" aria-live="polite">Loading files…</p>
+      <app-loading-indicator label="Loading files…" />
     }
+
     @if (loadedMixes().length > 0) {
+      @if (savedSetsReady() && loadedSetsList().length > 0) {
+        <app-startup-info [sets]="loadedSetsList()" />
+      }
       <section class="loaded-sets" aria-label="Loaded sets">
         @if (hasAudio()) {
           <app-options-panel />
@@ -46,9 +50,9 @@
                 [file]="audioFile"
                 [trackMarkers]="mix.trackMarkers"
                 [cacheFileId]="cacheFileId(mix)"
-                [canSave]="canSave(mix)"
+                [canSaveMix]="canSaveMix(mix)"
                 [isSaving]="mix.isSaving"
-                [isSaved]="isSaved(mix)"
+                [isMixedSaved]="isMixedSaved(mix)"
                 (saveRequested)="saveSet(mix.id)"
               />
               @if (mix.playlist.length > 0) {
@@ -73,12 +77,6 @@
   </section>
 
   @if (!isLoadingFiles()) {
-    <section>
-      @if (savedSetsReady() && loadedSetsList().length > 0) {
-        <app-startup-info [sets]="loadedSetsList()" />
-      }
-    </section>
-
     <section>
       <app-search-bar (setLoaded)="onSavedSetLoaded($event)" />
     </section>

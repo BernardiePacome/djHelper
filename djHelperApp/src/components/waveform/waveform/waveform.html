@@ -10,7 +10,7 @@
   </div>
 
   @if (isLoading()) {
-    <p class="waveform-message" role="status">Analyzing {{ file().name }}…</p>
+    <app-loading-indicator [label]="'Analyzing ' + file().name + '…'" />
   }
   @if (errorMessage()) {
     <p class="waveform-error" role="alert">{{ errorMessage() }}</p>
@@ -61,16 +61,16 @@
 
       <button
         (click)="saveRequested.emit()"
-        [disabled]="!canSave() || isSaving() || isSaved()"
+        [disabled]="!canSaveMix() || isSaving() || isMixedSaved()"
         [title]="
-          canSave() || isSaved()
+          canSaveMix() || isMixedSaved()
             ? ''
             : 'Load a cue file together with its audio file to save the set'
         "
         type="button"
         class="playback-button save-button"
       >
-        {{ isSaving() ? 'Saving…' : isSaved() ? 'Saved ✓' : 'Save Set' }}
+        {{ isSaving() ? 'Saving…' : isMixedSaved() ? 'Saved ✓' : 'Save Set' }}
       </button>
       <span class="playback-time" aria-live="off"
         >{{ formattedCurrentTime() }} / {{ formattedDuration() }}</span

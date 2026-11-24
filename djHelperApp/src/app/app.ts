@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { parseCueTracks } from '../helpers/cue-parser/cue-parser';
 import { isMockFileArray } from '../helpers/is-mock-file-array/is-mock-file-array';
 import { CueFileDropzone } from '../components/cue-file-dropzone/cue-file-dropzone';
+import { LoadingIndicator } from '../components/loading-indicator/loading-indicator';
 import { OptionsPanel } from '../components/options-panel/options-panel';
 import { PlaylistOutput } from '../components/playlist-output/playlist-output';
 import { SavedSets } from '../components/saved-sets/saved-sets';
@@ -22,6 +23,7 @@ import { SetTrack } from '../interfaces/set-track';
   standalone: true,
   imports: [
     CueFileDropzone,
+    LoadingIndicator,
     OptionsPanel,
     PlaylistOutput,
     SavedSets,
@@ -51,7 +53,7 @@ export class App {
   private readonly savedSets = inject(SavedSetsService);
   private nextMixId = 0;
 
-  public canSave(mix: LoadedMix): boolean {
+  public canSaveMix(mix: LoadedMix): boolean {
     return (
       mix.cueFile !== null &&
       mix.audioFile !== null &&
@@ -60,7 +62,7 @@ export class App {
     );
   }
 
-  public isSaved(mix: LoadedMix): boolean {
+  public isMixedSaved(mix: LoadedMix): boolean {
     const id = mix.savedSetId;
     return id !== null && this.savedSets.sets().some((set) => set.id === id);
   }
@@ -69,6 +71,10 @@ export class App {
   public cacheFileId(mix: LoadedMix): string | null {
     const id = this.savedSets.sets().find((set) => set.id === mix.savedSetId)?.audio.id ?? null;
     return id !== null && !id.startsWith('local-') ? id : null;
+  }
+
+  public removeMix(mixId: number): void {
+    this.loadedMixes.update((mixes) => mixes.filter((mix) => mix.id !== mixId));
   }
 
   public async onFilesSelected(files: File[], savedSetId: string | null = null): Promise<void> {
@@ -101,10 +107,6 @@ export class App {
     } finally {
       this.isLoadingFiles.set(false);
     }
-  }
-
-  public removeMix(mixId: number): void {
-    this.loadedMixes.update((mixes) => mixes.filter((mix) => mix.id !== mixId));
   }
 
   public async saveSet(mixId: number): Promise<void> {
@@ -315,6 +317,7 @@ export class App {
     };
     this.loadedMixes.update((mixes) => [mix, ...mixes]);
   }
+
   private patchMix(mixId: number, changes: Partial<LoadedMix>): void {
     this.loadedMixes.update((mixes) =>
       mixes.map((mix) => (mix.id === mixId ? { ...mix, ...changes } : mix)),

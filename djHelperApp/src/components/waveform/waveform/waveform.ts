@@ -16,6 +16,7 @@ import { PlaybackOptionsService } from '../../../services/playback-options.servi
 import { isSameFile } from '../../../helpers/same-file/same-file';
 import { ActivePlayerService } from '../../../services/active-player-service/active-player-service';
 import { analyzeMp3 } from '../mp3-waveform/mp3-waveform';
+import { LoadingIndicator } from '../../loading-indicator/loading-indicator';
 import { PlaybackIcon } from '../playback-buttons/playback-icon';
 import { TrackTooltipText } from '../track-tooltip-text/track-tooltip-text';
 import { CueMarker, PositionedCueMarker } from '../../../interfaces/set-track';
@@ -44,7 +45,7 @@ function runRamp(durationMs: number, onProgress: (progress: number) => void): ()
 @Component({
   selector: 'app-waveform',
   standalone: true,
-  imports: [PlaybackIcon, TrackTooltipText],
+  imports: [LoadingIndicator, PlaybackIcon, TrackTooltipText],
   templateUrl: './waveform.html',
   styleUrl: './waveform.scss',
 })
@@ -65,9 +66,9 @@ export class Waveform {
   public readonly trackMarkers = input<CueMarker[]>([]);
   // Id of the saved audio file on the server, which caches its waveform.
   public readonly cacheFileId = input<string | null>(null);
-  public readonly canSave = input(false);
+  public readonly canSaveMix = input(false);
   public readonly isSaving = input(false);
-  public readonly isSaved = input(false);
+  public readonly isMixedSaved = input(false);
   public readonly saveRequested = output<void>();
   // Signals
   private readonly hoveredMarker = signal<PositionedCueMarker | null>(null);

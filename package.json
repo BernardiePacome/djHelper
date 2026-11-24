@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -n server,ui -c blue,green \"npm --prefix server run dev\" \"npm --prefix djHelperApp start\"",
+    "test": "npm --prefix server test && npm --prefix djHelperApp test -- --watch=false",
     "export:mac": "bash scripts/export-mac-app.sh",
     "export:win": "node scripts/export-windows-app.mjs"
   },

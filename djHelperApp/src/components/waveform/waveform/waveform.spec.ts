@@ -105,7 +105,7 @@ describe('Waveform', () => {
     };
 
     it('sits right after the next transition button and is disabled until the set can be saved', async () => {
-      const { buttons, saveButton } = await render({ canSave: false });
+      const { buttons, saveButton } = await render({ canSaveMix: false });
       expect(buttons.indexOf(saveButton)).toBe(
         buttons.findIndex((button) => button.getAttribute('aria-label') === 'Next Transition') + 1,
       );
@@ -114,7 +114,7 @@ describe('Waveform', () => {
     });
 
     it('emits saveRequested when enabled', async () => {
-      const { fixture, saveButton } = await render({ canSave: true });
+      const { fixture, saveButton } = await render({ canSaveMix: true });
       const requested = vi.fn();
       fixture.componentInstance.saveRequested.subscribe(requested);
 
@@ -125,11 +125,11 @@ describe('Waveform', () => {
     });
 
     it('shows progress and the saved state without allowing another save', async () => {
-      const saving = (await render({ canSave: true, isSaving: true })).saveButton;
+      const saving = (await render({ canSaveMix: true, isSaving: true })).saveButton;
       expect(saving.textContent).toContain('Saving');
       expect(saving.disabled).toBe(true);
 
-      const saved = (await render({ canSave: true, isSaved: true })).saveButton;
+      const saved = (await render({ canSaveMix: true, isMixedSaved: true })).saveButton;
       expect(saved.textContent).toContain('Saved');
       expect(saved.disabled).toBe(true);
     });
