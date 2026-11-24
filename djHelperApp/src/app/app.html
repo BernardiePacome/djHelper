@@ -22,9 +22,17 @@
     />
 
     @if (isLoadingFiles()) {
-      <p class="loading-message" role="status" aria-live="polite">Loading files…</p>
+      <app-loading-indicator label="Loading files…" />
     }
+
     @if (loadedMixes().length > 0) {
+      @if (savedSetsReady() && loadedSetsList().length > 0) {
+        <app-loaded-sets-info
+          [sets]="loadedSetsList()"
+          [loadedSetIds]="loadedSetIds()"
+          [playingSetId]="playingSetId()"
+        />
+      }
       <section class="loaded-sets" aria-label="Loaded sets">
         @if (hasAudio()) {
           <app-options-panel />
@@ -42,29 +50,21 @@
             </div>
             @if (mix.audioFile; as audioFile) {
               <app-waveform
-                #waveform
                 [file]="audioFile"
                 [trackMarkers]="mix.trackMarkers"
+                [tracks]="mix.playlist"
                 [cacheFileId]="cacheFileId(mix)"
-                [canSave]="canSave(mix)"
+                [canSaveMix]="canSaveMix(mix)"
                 [isSaving]="mix.isSaving"
-                [isSaved]="isSaved(mix)"
+                [isMixedSaved]="isMixedSaved(mix)"
                 (saveRequested)="saveSet(mix.id)"
+                (playbackStateChange)="onMixPlaybackStateChange(mix.id, $event)"
               />
-              @if (mix.playlist.length > 0) {
-                <app-track-list
-                  [tracks]="mix.playlist"
-                  [seekableMarkers]="waveform.visibleTrackMarkers()"
-                  (seekRequested)="waveform.seekToTime($event)"
-                />
-              }
             } @else {
               @if (mix.playlist.length > 0) {
                 <app-track-list [tracks]="mix.playlist" />
+                <app-playlist-output [tracks]="mix.playlist" />
               }
-            }
-            @if (mix.playlist.length > 0) {
-              <app-playlist-output [tracks]="mix.playlist" />
             }
           </article>
         }
@@ -74,17 +74,11 @@
 
   @if (!isLoadingFiles()) {
     <section>
-      @if (savedSetsReady() && loadedSetsList().length > 0) {
-        <app-startup-info [sets]="loadedSetsList()" />
-      }
-    </section>
-
-    <section>
       <app-search-bar (setLoaded)="onSavedSetLoaded($event)" />
     </section>
 
     <app-saved-sets [loadedSetIds]="loadedSetIds()" (setLoaded)="onSavedSetLoaded($event)" />
   }
 
-  <section>® This product is register under Registered under MIT liscense 2026</section>
+  <section>Copyright 2026. Licensed under the MIT License.</section>
 </main>

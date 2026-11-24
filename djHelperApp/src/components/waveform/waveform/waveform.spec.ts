@@ -105,7 +105,7 @@ describe('Waveform', () => {
     };
 
     it('sits right after the next transition button and is disabled until the set can be saved', async () => {
-      const { buttons, saveButton } = await render({ canSave: false });
+      const { buttons, saveButton } = await render({ canSaveMix: false });
       expect(buttons.indexOf(saveButton)).toBe(
         buttons.findIndex((button) => button.getAttribute('aria-label') === 'Next Transition') + 1,
       );
@@ -114,7 +114,7 @@ describe('Waveform', () => {
     });
 
     it('emits saveRequested when enabled', async () => {
-      const { fixture, saveButton } = await render({ canSave: true });
+      const { fixture, saveButton } = await render({ canSaveMix: true });
       const requested = vi.fn();
       fixture.componentInstance.saveRequested.subscribe(requested);
 
@@ -125,11 +125,11 @@ describe('Waveform', () => {
     });
 
     it('shows progress and the saved state without allowing another save', async () => {
-      const saving = (await render({ canSave: true, isSaving: true })).saveButton;
+      const saving = (await render({ canSaveMix: true, isSaving: true })).saveButton;
       expect(saving.textContent).toContain('Saving');
       expect(saving.disabled).toBe(true);
 
-      const saved = (await render({ canSave: true, isSaved: true })).saveButton;
+      const saved = (await render({ canSaveMix: true, isMixedSaved: true })).saveButton;
       expect(saved.textContent).toContain('Saved');
       expect(saved.disabled).toBe(true);
     });
@@ -145,6 +145,26 @@ describe('Waveform', () => {
     const path = fixture.nativeElement.querySelector('.bars-main') as SVGPathElement;
     expect(path.getAttribute('d')).toContain('v66');
     expect(path.getAttribute('d')).not.toContain('NaN');
+  });
+
+  it('conditionally renders playlist output text without hiding the track list', async () => {
+    const options = TestBed.inject(PlaybackOptionsService);
+    options.showPlaylistOutputText.set(true);
+
+    const fixture = await createWaveform();
+    fixture.componentRef.setInput('tracks', [
+      { artist: 'Artist One', title: 'Track One', playTime: '00:10' },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-track-list')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-playlist-output')).not.toBeNull();
+
+    options.showPlaylistOutputText.set(false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-track-list')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-playlist-output')).toBeNull();
   });
 
   it('reports an analysis failure without replacing the current player', async () => {
@@ -360,6 +380,8 @@ describe('Waveform', () => {
     vi.stubGlobal('cancelAnimationFrame', cancelAnimationFrame);
     const component = (await createWaveform()).componentInstance;
     const audio = createAudio({ paused: false, duration: 60, currentTime: 12 });
+    const playbackChanges: boolean[] = [];
+    component.playbackStateChange.subscribe((isPlaying) => playbackChanges.push(isPlaying));
 
     component.onAudioPlay(audio);
     expect(component.isPlaying()).toBe(true);
@@ -372,6 +394,7 @@ describe('Waveform', () => {
     component.onAudioPlay(audio);
     component.onAudioEnded();
     expect(component.isPlaying()).toBe(false);
+    expect(playbackChanges).toEqual([true, false, true, false]);
   });
 
   it('highlights only the playing panel and clears the highlight on pause or end', async () => {

@@ -80,9 +80,9 @@ export class Waveform {
   public readonly trackMarkers = input<CueMarker[]>([]);
   // Id of the saved audio file on the server, which caches its waveform.
   public readonly cacheFileId = input<string | null>(null);
-  public readonly canSave = input(false);
+  public readonly canSaveMix = input(false);
   public readonly isSaving = input(false);
-  public readonly isSaved = input(false);
+  public readonly isMixedSaved = input(false);
   public readonly saveRequested = output<void>();
   // Signals
   private readonly hoveredMarker = signal<PositionedCueMarker | null>(null);

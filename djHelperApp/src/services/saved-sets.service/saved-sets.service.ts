@@ -26,7 +26,7 @@ export class SavedSetsService {
       if (
         !this.isRecord(setsBody) ||
         !Array.isArray(setsBody['sets']) ||
-        !setsBody['sets'].every((set) => this.isSavedSet(set)) ||
+        !setsBody['sets'].every((set) => this.isMixedSavedSet(set)) ||
         !this.isStorageUsage(storageBody)
       ) {
         throw new Error('Unexpected response from the server');
@@ -68,7 +68,7 @@ export class SavedSetsService {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ name, cueFileId: cue.id, audioFileId: audio.id }),
       });
-      if (!this.isSavedSet(body)) {
+      if (!this.isMixedSavedSet(body)) {
         throw new Error('Unexpected response from the server');
       }
 
@@ -257,7 +257,7 @@ export class SavedSetsService {
     form.append('file', file, file.name);
 
     const body = await this.requestJson('/api/files', { method: 'POST', body: form });
-    if (!this.isSavedFile(body)) {
+    if (!this.isMixedSavedFile(body)) {
       throw new Error('Unexpected response from the server');
     }
 
@@ -279,7 +279,7 @@ export class SavedSetsService {
     return typeof value === 'object' && value !== null;
   }
 
-  private isSavedFile(value: unknown): value is SavedFile {
+  private isMixedSavedFile(value: unknown): value is SavedFile {
     return (
       this.isRecord(value) &&
       typeof value['id'] === 'string' &&
@@ -290,15 +290,15 @@ export class SavedSetsService {
     );
   }
 
-  private isSavedSet(value: unknown): value is SavedSet {
+  private isMixedSavedSet(value: unknown): value is SavedSet {
     return (
       this.isRecord(value) &&
       typeof value['id'] === 'string' &&
       typeof value['name'] === 'string' &&
       typeof value['createdAt'] === 'string' &&
       typeof value['size'] === 'number' &&
-      this.isSavedFile(value['cue']) &&
-      this.isSavedFile(value['audio'])
+      this.isMixedSavedFile(value['cue']) &&
+      this.isMixedSavedFile(value['audio'])
     );
   }
 

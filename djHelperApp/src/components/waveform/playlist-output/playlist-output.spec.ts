@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { PlaylistOutput } from './playlist-output';
-import { SetTrack } from '../../interfaces/set-track';
+import { SetTrack } from '../../../interfaces/set-track';
 
 describe('PlaylistOutput', () => {
   const tracks: SetTrack[] = [

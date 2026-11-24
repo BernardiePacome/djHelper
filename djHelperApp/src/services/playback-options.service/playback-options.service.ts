@@ -10,5 +10,6 @@ export class PlaybackOptionsService {
   public readonly waveformColor = signal<string>('#ff00fb');
   public readonly maxCrossfadeDuration = 5;
   public readonly crossfadeDuration = signal(2);
+  public readonly showPlaylistOutputText = signal(false);
   public readonly crossfadeMs = computed(() => this.crossfadeDuration() * 1000);
 }

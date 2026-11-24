@@ -33,4 +33,14 @@
       ></button>
     }
   </div>
+
+  <label class="checkbox-option">
+    <input
+      type="checkbox"
+      aria-label="Show playlist output text"
+      [checked]="playbackOptionsService.showPlaylistOutputText()"
+      (change)="onPlaylistOutputTextChange($event)"
+    />
+    <span>Show playlist output text</span>
+  </label>
 </section>

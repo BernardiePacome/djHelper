@@ -15,4 +15,10 @@ export class OptionsPanel {
       Number((event.target as HTMLInputElement).value),
     );
   }
+
+  protected onPlaylistOutputTextChange(event: Event): void {
+    this.playbackOptionsService.showPlaylistOutputText.set(
+      (event.target as HTMLInputElement).checked,
+    );
+  }
 }

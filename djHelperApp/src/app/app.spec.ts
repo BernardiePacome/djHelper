@@ -53,7 +53,7 @@ describe('App', () => {
     expect(app.isLoadingFiles()).toBe(true);
     expect(fixture.nativeElement.querySelector('app-search-bar')).toBeNull();
     expect(fixture.nativeElement.querySelector('app-saved-sets')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.loading-message')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('app-loading-indicator')).toBeTruthy();
 
     await loading;
     fixture.detectChanges();
@@ -61,7 +61,9 @@ describe('App', () => {
     expect(app.isLoadingFiles()).toBe(false);
     expect(fixture.nativeElement.querySelector('app-search-bar')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('app-saved-sets')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('app-track-list')).toBeTruthy();
+    const waveform = fixture.nativeElement.querySelector('app-waveform');
+    expect(waveform?.querySelector('app-track-list')).toBeTruthy();
+    expect(waveform?.querySelector('app-playlist-output')).toBeNull();
   });
 });
 
@@ -185,13 +187,13 @@ describe('App saved sets', () => {
   it('can only save once a cue and its audio are loaded and the server is reachable', async () => {
     const app = createApp();
     app.onFilesSelected([new File(['audio'], 'solo.mp3')]);
-    expect(app.canSave(app.loadedMixes()[0])).toBe(false);
+    expect(app.canSaveMix(app.loadedMixes()[0])).toBe(false);
 
     const mix = await loadFiles(app);
-    expect(app.canSave(mix)).toBe(true);
+    expect(app.canSaveMix(mix)).toBe(true);
 
     status.set('unavailable');
-    expect(app.canSave(mix)).toBe(false);
+    expect(app.canSaveMix(mix)).toBe(false);
   });
 
   it('saves the loaded cue and audio under the cue file name', async () => {
@@ -205,7 +207,7 @@ describe('App saved sets', () => {
     await app.saveSet(mix.id);
 
     expect(service.save).toHaveBeenCalledWith('mix', mix.cueFile, mix.audioFile);
-    expect(app.isSaved(app.loadedMixes()[0])).toBe(true);
+    expect(app.isMixedSaved(app.loadedMixes()[0])).toBe(true);
     expect(app.loadedMixes()[0].isSaving).toBe(false);
   });
 
@@ -217,7 +219,7 @@ describe('App saved sets', () => {
     await app.saveSet(mix.id);
 
     expect(app.errorMessage()).toBe('Unable to save set: Storage quota exceeded');
-    expect(app.isSaved(app.loadedMixes()[0])).toBe(false);
+    expect(app.isMixedSaved(app.loadedMixes()[0])).toBe(false);
     expect(app.loadedMixes()[0].isSaving).toBe(false);
   });
 
@@ -232,7 +234,39 @@ describe('App saved sets', () => {
     await vi.waitFor(() => expect(app.loadedMixes()).toHaveLength(1));
 
     expect(app.loadedMixes()[0].audioFile?.name).toBe('mix.mp3');
-    expect(app.isSaved(app.loadedMixes()[0])).toBe(true);
+    expect(app.isMixedSaved(app.loadedMixes()[0])).toBe(true);
+  });
+
+  it('tracks the saved set currently playing and ignores pauses from other mixes', () => {
+    const app = createApp();
+    app.loadedMixes.set([
+      {
+        id: 1,
+        audioFile: null,
+        cueFile: null,
+        playlist: [],
+        trackMarkers: [],
+        savedSetId: 's1',
+        isSaving: false,
+      },
+      {
+        id: 2,
+        audioFile: null,
+        cueFile: null,
+        playlist: [],
+        trackMarkers: [],
+        savedSetId: 's2',
+        isSaving: false,
+      },
+    ]);
+
+    app.onMixPlaybackStateChange(2, true);
+    app.onMixPlaybackStateChange(1, false);
+
+    expect(app.playingSetId()).toBe('s2');
+
+    app.onMixPlaybackStateChange(2, false);
+    expect(app.playingSetId()).toBeNull();
   });
 
   it('does not load a saved set twice', async () => {
@@ -260,7 +294,7 @@ describe('App saved sets', () => {
 
     expect(app.loadedMixes()).toHaveLength(1);
     expect(app.loadedMixes()[0].audioFile).toBe(playing.audioFile);
-    expect(app.isSaved(app.loadedMixes()[0])).toBe(true);
+    expect(app.isMixedSaved(app.loadedMixes()[0])).toBe(true);
   });
 
   it('keeps the saved link when the same cue and audio are loaded again', async () => {
@@ -275,7 +309,7 @@ describe('App saved sets', () => {
     await app.onFilesSelected(files(2));
 
     expect(app.loadedMixes()).toHaveLength(1);
-    expect(app.isSaved(app.loadedMixes()[0])).toBe(true);
+    expect(app.isMixedSaved(app.loadedMixes()[0])).toBe(true);
   });
 
   it('reflects saved and removed mixes in the saved set load button', async () => {
@@ -393,6 +427,6 @@ describe('App saved sets', () => {
 
     sets.set([]);
 
-    expect(app.isSaved(app.loadedMixes()[0])).toBe(false);
+    expect(app.isMixedSaved(app.loadedMixes()[0])).toBe(false);
   });
 });

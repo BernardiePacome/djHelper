@@ -28,4 +28,21 @@ describe('OptionsPanel', () => {
     expect(options.crossfadeDuration()).toBe(0.05);
     expect(fixture.nativeElement.querySelector('output').textContent.trim()).toBe('0.05s');
   });
+
+  it('updates whether playlist output text is shown from its checkbox', () => {
+    const fixture = TestBed.createComponent(OptionsPanel);
+    fixture.detectChanges();
+    const checkbox = fixture.nativeElement.querySelector(
+      'input[type="checkbox"][aria-label="Show playlist output text"]',
+    ) as HTMLInputElement;
+    const options = TestBed.inject(PlaybackOptionsService);
+
+    expect(checkbox.checked).toBe(false);
+
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(options.showPlaylistOutputText()).toBe(true);
+  });
 });

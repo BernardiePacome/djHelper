@@ -16,9 +16,12 @@ import { PlaybackOptionsService } from '../../../services/playback-options.servi
 import { isSameFile } from '../../../helpers/same-file/same-file';
 import { ActivePlayerService } from '../../../services/active-player-service/active-player-service';
 import { analyzeMp3 } from '../mp3-waveform/mp3-waveform';
+import { LoadingIndicator } from '../../loading-indicator/loading-indicator';
 import { PlaybackIcon } from '../playback-buttons/playback-icon';
 import { TrackTooltipText } from '../track-tooltip-text/track-tooltip-text';
-import { CueMarker, PositionedCueMarker } from '../../../interfaces/set-track';
+import { PlaylistOutput } from '../playlist-output/playlist-output';
+import { TrackList } from '../track-list/track-list';
+import { CueMarker, PositionedCueMarker, SetTrack } from '../../../interfaces/set-track';
 
 interface SeekFade {
   outgoing: HTMLAudioElement;
@@ -44,7 +47,7 @@ function runRamp(durationMs: number, onProgress: (progress: number) => void): ()
 @Component({
   selector: 'app-waveform',
   standalone: true,
-  imports: [PlaybackIcon, TrackTooltipText],
+  imports: [LoadingIndicator, PlaybackIcon, PlaylistOutput, TrackList, TrackTooltipText],
   templateUrl: './waveform.html',
   styleUrl: './waveform.scss',
 })
@@ -63,12 +66,14 @@ export class Waveform {
   // Inputs
   public readonly file = input.required<File>();
   public readonly trackMarkers = input<CueMarker[]>([]);
+  public readonly tracks = input<SetTrack[]>([]);
   // Id of the saved audio file on the server, which caches its waveform.
   public readonly cacheFileId = input<string | null>(null);
-  public readonly canSave = input(false);
+  public readonly canSaveMix = input(false);
   public readonly isSaving = input(false);
-  public readonly isSaved = input(false);
+  public readonly isMixedSaved = input(false);
   public readonly saveRequested = output<void>();
+  public readonly playbackStateChange = output<boolean>();
   // Signals
   private readonly hoveredMarker = signal<PositionedCueMarker | null>(null);
   private loadId = 0;
@@ -387,6 +392,7 @@ export class Waveform {
       this.fadeVolume(audio, 0, 1, () => undefined);
     }
     this.isPlaying.set(true);
+    this.playbackStateChange.emit(true);
     this.updatePlaybackFrame(audio);
   }
 
@@ -394,6 +400,7 @@ export class Waveform {
     this.cancelVolumeFades();
     this.activePlayers.deactivate(this.clipId);
     this.isPlaying.set(false);
+    this.playbackStateChange.emit(false);
     this.stopPlaybackFrame();
   }
 
