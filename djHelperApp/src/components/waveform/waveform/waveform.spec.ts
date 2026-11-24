@@ -147,6 +147,26 @@ describe('Waveform', () => {
     expect(path.getAttribute('d')).not.toContain('NaN');
   });
 
+  it('conditionally renders playlist output text without hiding the track list', async () => {
+    const options = TestBed.inject(PlaybackOptionsService);
+    options.showPlaylistOutputText.set(true);
+
+    const fixture = await createWaveform();
+    fixture.componentRef.setInput('tracks', [
+      { artist: 'Artist One', title: 'Track One', playTime: '00:10' },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-track-list')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-playlist-output')).not.toBeNull();
+
+    options.showPlaylistOutputText.set(false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('app-track-list')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('app-playlist-output')).toBeNull();
+  });
+
   it('reports an analysis failure without replacing the current player', async () => {
     const fixture = await createWaveform();
     const source = fixture.componentInstance.audioSource();
@@ -360,6 +380,8 @@ describe('Waveform', () => {
     vi.stubGlobal('cancelAnimationFrame', cancelAnimationFrame);
     const component = (await createWaveform()).componentInstance;
     const audio = createAudio({ paused: false, duration: 60, currentTime: 12 });
+    const playbackChanges: boolean[] = [];
+    component.playbackStateChange.subscribe((isPlaying) => playbackChanges.push(isPlaying));
 
     component.onAudioPlay(audio);
     expect(component.isPlaying()).toBe(true);
@@ -372,6 +394,7 @@ describe('Waveform', () => {
     component.onAudioPlay(audio);
     component.onAudioEnded();
     expect(component.isPlaying()).toBe(false);
+    expect(playbackChanges).toEqual([true, false, true, false]);
   });
 
   it('highlights only the playing panel and clears the highlight on pause or end', async () => {

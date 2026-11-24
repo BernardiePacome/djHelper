@@ -1,0 +1,21 @@
+<div class="loaded-sets-info">
+  <p class="loaded-sets-messages">Set(s) already loaded:</p>
+  <ul>
+    @for (loadedSet of sets(); track loadedSet.id) {
+      <li
+        [class.not-loaded]="!loadedSetIds().includes(loadedSet.id)"
+        [class.current-set]="loadedSet.id === playingSetId()"
+        [attr.aria-current]="loadedSet.id === playingSetId() ? 'true' : null"
+      >
+        <span class="set-status" aria-hidden="true">
+          @if (loadedSet.id === playingSetId()) {
+            <svg class="current-set-icon" viewBox="0 0 24 24">
+              <path d="M7 4.5v15l12-7.5z" />
+            </svg>
+          }
+        </span>
+        <span>{{ loadedSet.name }}</span>
+      </li>
+    }
+  </ul>
+</div>

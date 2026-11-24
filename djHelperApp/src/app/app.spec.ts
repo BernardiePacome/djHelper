@@ -61,7 +61,9 @@ describe('App', () => {
     expect(app.isLoadingFiles()).toBe(false);
     expect(fixture.nativeElement.querySelector('app-search-bar')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('app-saved-sets')).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('app-track-list')).toBeTruthy();
+    const waveform = fixture.nativeElement.querySelector('app-waveform');
+    expect(waveform?.querySelector('app-track-list')).toBeTruthy();
+    expect(waveform?.querySelector('app-playlist-output')).toBeNull();
   });
 });
 
@@ -233,6 +235,38 @@ describe('App saved sets', () => {
 
     expect(app.loadedMixes()[0].audioFile?.name).toBe('mix.mp3');
     expect(app.isMixedSaved(app.loadedMixes()[0])).toBe(true);
+  });
+
+  it('tracks the saved set currently playing and ignores pauses from other mixes', () => {
+    const app = createApp();
+    app.loadedMixes.set([
+      {
+        id: 1,
+        audioFile: null,
+        cueFile: null,
+        playlist: [],
+        trackMarkers: [],
+        savedSetId: 's1',
+        isSaving: false,
+      },
+      {
+        id: 2,
+        audioFile: null,
+        cueFile: null,
+        playlist: [],
+        trackMarkers: [],
+        savedSetId: 's2',
+        isSaving: false,
+      },
+    ]);
+
+    app.onMixPlaybackStateChange(2, true);
+    app.onMixPlaybackStateChange(1, false);
+
+    expect(app.playingSetId()).toBe('s2');
+
+    app.onMixPlaybackStateChange(2, false);
+    expect(app.playingSetId()).toBeNull();
   });
 
   it('does not load a saved set twice', async () => {

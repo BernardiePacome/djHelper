@@ -27,7 +27,11 @@
 
     @if (loadedMixes().length > 0) {
       @if (savedSetsReady() && loadedSetsList().length > 0) {
-        <app-startup-info [sets]="loadedSetsList()" />
+        <app-loaded-sets-info
+          [sets]="loadedSetsList()"
+          [loadedSetIds]="loadedSetIds()"
+          [playingSetId]="playingSetId()"
+        />
       }
       <section class="loaded-sets" aria-label="Loaded sets">
         @if (hasAudio()) {
@@ -46,29 +50,21 @@
             </div>
             @if (mix.audioFile; as audioFile) {
               <app-waveform
-                #waveform
                 [file]="audioFile"
                 [trackMarkers]="mix.trackMarkers"
+                [tracks]="mix.playlist"
                 [cacheFileId]="cacheFileId(mix)"
                 [canSaveMix]="canSaveMix(mix)"
                 [isSaving]="mix.isSaving"
                 [isMixedSaved]="isMixedSaved(mix)"
                 (saveRequested)="saveSet(mix.id)"
+                (playbackStateChange)="onMixPlaybackStateChange(mix.id, $event)"
               />
-              @if (mix.playlist.length > 0) {
-                <app-track-list
-                  [tracks]="mix.playlist"
-                  [seekableMarkers]="waveform.visibleTrackMarkers()"
-                  (seekRequested)="waveform.seekToTime($event)"
-                />
-              }
             } @else {
               @if (mix.playlist.length > 0) {
                 <app-track-list [tracks]="mix.playlist" />
+                <app-playlist-output [tracks]="mix.playlist" />
               }
-            }
-            @if (mix.playlist.length > 0) {
-              <app-playlist-output [tracks]="mix.playlist" />
             }
           </article>
         }

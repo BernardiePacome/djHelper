@@ -38,6 +38,18 @@ h2 {
   gap: 10px;
 }
 
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  cursor: pointer;
+
+  input {
+    accent-color: #8aa4ff;
+  }
+}
+
 .swatch {
   width: 24px;
   height: 24px;

@@ -4,12 +4,12 @@ import { isMockFileArray } from '../helpers/is-mock-file-array/is-mock-file-arra
 import { CueFileDropzone } from '../components/cue-file-dropzone/cue-file-dropzone';
 import { LoadingIndicator } from '../components/loading-indicator/loading-indicator';
 import { OptionsPanel } from '../components/options-panel/options-panel';
-import { PlaylistOutput } from '../components/playlist-output/playlist-output';
+import { PlaylistOutput } from '../components/waveform/playlist-output/playlist-output';
 import { SavedSets } from '../components/saved-sets/saved-sets';
 import { SavedSetsService } from '../services/saved-sets.service/saved-sets.service';
 import { SearchBar } from '../components/search-bar/search-bar';
-import { StartupInfo } from '../components/startup-info/startup-info';
-import { TrackList } from '../components/track-list/track-list';
+import { LoadedSetsInfo } from '../components/loaded-sets-info/loaded-sets-info';
+import { TrackList } from '../components/waveform/track-list/track-list';
 import { Waveform } from '../components/waveform/waveform/waveform';
 import { isSameAudio } from '../helpers/same-file/same-file';
 import { isMockModeUrl } from '../../mocks/mock-mode';
@@ -28,7 +28,7 @@ import { SetTrack } from '../interfaces/set-track';
     PlaylistOutput,
     SavedSets,
     SearchBar,
-    StartupInfo,
+    LoadedSetsInfo,
     TrackList,
     Waveform,
   ],
@@ -40,6 +40,10 @@ export class App {
   public readonly errorMessage = signal('');
   // Newest first. Each mix keeps its own player, so loading another one never interrupts playback.
   public readonly loadedMixes = signal<LoadedMix[]>([]);
+  public readonly playingMixId = signal<number | null>(null);
+  public readonly playingSetId = computed(
+    () => this.loadedMixes().find((mix) => mix.id === this.playingMixId())?.savedSetId ?? null,
+  );
   public readonly loadedSetIds = computed(() =>
     this.loadedMixes().flatMap((mix) => (mix.savedSetId === null ? [] : [mix.savedSetId])),
   );
@@ -74,7 +78,18 @@ export class App {
   }
 
   public removeMix(mixId: number): void {
+    if (this.playingMixId() === mixId) {
+      this.playingMixId.set(null);
+    }
     this.loadedMixes.update((mixes) => mixes.filter((mix) => mix.id !== mixId));
+  }
+
+  public onMixPlaybackStateChange(mixId: number, isPlaying: boolean): void {
+    if (isPlaying) {
+      this.playingMixId.set(mixId);
+    } else if (this.playingMixId() === mixId) {
+      this.playingMixId.set(null);
+    }
   }
 
   public async onFilesSelected(files: File[], savedSetId: string | null = null): Promise<void> {
@@ -117,7 +132,7 @@ export class App {
 
     const { cueFile, audioFile } = mix;
 
-    this.patchMix(mixId, { isSaving: true });
+    this.updateLoadedMix(mixId, { isSaving: true });
     this.errorMessage.set('');
 
     try {
@@ -140,7 +155,7 @@ export class App {
       const details = error instanceof Error ? error.message : 'Unknown error';
       this.errorMessage.set(`Unable to save set: ${details}`);
     } finally {
-      this.patchMix(mixId, { isSaving: false });
+      this.updateLoadedMix(mixId, { isSaving: false });
     }
   }
 
@@ -318,7 +333,7 @@ export class App {
     this.loadedMixes.update((mixes) => [mix, ...mixes]);
   }
 
-  private patchMix(mixId: number, changes: Partial<LoadedMix>): void {
+  private updateLoadedMix(mixId: number, changes: Partial<LoadedMix>): void {
     this.loadedMixes.update((mixes) =>
       mixes.map((mix) => (mix.id === mixId ? { ...mix, ...changes } : mix)),
     );

@@ -1,0 +1,70 @@
+<section class="track-list-panel">
+  <h2>
+    <button
+      type="button"
+      class="collapse-toggle"
+      [attr.aria-expanded]="isExpanded()"
+      [attr.aria-controls]="listId"
+      (click)="toggleExpanded()"
+    >
+      <svg
+        class="collapse-arrow"
+        [class.collapsed]="!isExpanded()"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+      Playlist
+    </button>
+  </h2>
+
+  @if (isExpanded()) {
+    <label class="playlist-search">
+      <span>Search playlist</span>
+      <input
+        type="search"
+        autocomplete="off"
+        placeholder="Song title or artist"
+        [value]="query()"
+        (input)="onSearchInput($event)"
+        (keydown.escape)="query.set('')"
+      />
+    </label>
+    <ul class="track-list" [id]="listId">
+      @for (item of filteredTracks(); track item.track.title + item.track.artist) {
+        @let track = item.track;
+        @let index = item.index;
+        <li
+          class="track-row"
+          [class.current-track]="index === activeTrackIndex()"
+          [attr.aria-current]="index === activeTrackIndex() ? 'true' : null"
+        >
+          <span class="track-status" aria-hidden="true">
+            @if (index === activeTrackIndex()) {
+              <svg class="current-track-icon" viewBox="0 0 24 24">
+                <path d="M7 4.5v15l12-7.5z" />
+              </svg>
+            }
+          </span>
+          <span>{{ index + 1 }}.</span>
+          <span class="track-name">{{ track.artist }} - {{ track.title }}</span>
+          <button
+            type="button"
+            class="track-time"
+            [disabled]="seekableTime(track) === undefined"
+            [attr.aria-label]="
+              'Jump to ' + track.artist + ' - ' + track.title + ' at ' + track.playTime
+            "
+            (click)="seekToTrack(track)"
+          >
+            {{ track.playTime }}
+          </button>
+        </li>
+      }
+    </ul>
+    @if (filteredTracks().length === 0 && query().trim()) {
+      <p class="muted" role="status">No songs match "{{ query().trim() }}".</p>
+    }
+  }
+</section>

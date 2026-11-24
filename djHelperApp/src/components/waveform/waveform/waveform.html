@@ -159,4 +159,16 @@
     </div>
     <p class="waveform-duration">{{ formattedDuration() }}</p>
   }
+  @if (tracks().length > 0) {
+    <app-track-list
+      [tracks]="tracks()"
+      [seekableMarkers]="visibleTrackMarkers()"
+      [currentTime]="currentTime()"
+      [isPlaying]="isPlaying()"
+      (seekRequested)="seekToTime($event)"
+    />
+    @if (playbackOptions.showPlaylistOutputText()) {
+      <app-playlist-output [tracks]="tracks()" />
+    }
+  }
 </section>
